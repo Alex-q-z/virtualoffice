@@ -9,7 +9,7 @@ body, html {
   position: absolute;
 } */
 
-#remoteStream {
+/* #remoteStream {
   width: 25vh;
   height: 25vh;
   margin: 1em;
@@ -25,9 +25,9 @@ body, html {
   bottom: 30vh;
   left: 0;
   position: absolute;
-}
+} */
 
-#localStream {
+/* #localStream {
   width: 25vh;
   height: 25vh;
   margin: 1em;
@@ -43,6 +43,24 @@ body, html {
   bottom: 30vh;
   right: 0;
   position: absolute;
+} */
+
+#videoal {
+  margin-left: 80px;
+}
+
+#videoal div.video {
+  display: inline-block;
+  zoom: 1;
+  *display: inline;
+  width: 400px;
+  height: 400px;
+  margin: 0 10px 10px 0;
+}
+
+#videoal div.video video {
+  width: 100%;
+  height: 100%;
 }
 
 /* #toggleMic {
