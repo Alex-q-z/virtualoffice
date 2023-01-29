@@ -1,9 +1,10 @@
 // Config variables: change them to point to your own servers
 const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
 // const SIGNALING_SERVER_URL = 'http://localhost:9999';
-const TURN_SERVER_URL = 'localhost:3478';
-const TURN_SERVER_USERNAME = 'username';
-const TURN_SERVER_CREDENTIAL = 'credential';
+
+// const TURN_SERVER_URL = 'localhost:3478';
+// const TURN_SERVER_USERNAME = 'username';
+// const TURN_SERVER_CREDENTIAL = 'credential';
 // WebRTC config: you don't have to change this for the example to work
 // If you are testing on localhost, you can just use PC_CONFIG = {}
 // const PC_CONFIG = {
@@ -91,9 +92,9 @@ let getlocalStream = () => {
   // QZ: my version for multiple cameras
   console.log("getlocalStream: enter getLocalStream");
 
-  navigator.enumerateDevices(function(devices) {
+  navigator.enumerateDevices(async function(devices) {
     cameras = [];
-    devices.forEach(function(device) {
+    devices.forEach(async function(device) {
       // if (!device.deviceId) {
       //     device.deviceId = device.id;
       // }
@@ -111,16 +112,10 @@ let getlocalStream = () => {
     
     console.log("getlocalStream: after enumerateDevices(), cameras number %d", cameras.length);
 
-    // console.log("camera 1 id %s", cameras[0].deviceId);
-    // console.log("camera 1 label %s", cameras[0].label);
-    // console.log("camera 2 id %s", cameras[1].deviceId);
-    // console.log("camera 2 label %s", cameras[1].label);
-
-    // console.log("allCameras length %d", allCameras.length);
-    // console.log("camera 1 id %s", allCameras[0].deviceId);
-    // console.log("camera 1 label %s", allCameras[0].label);
-    // console.log("camera 2 id %s", allCameras[1].deviceId);
-    // console.log("camera 2 label %s", allCameras[1].label);
+    console.log("camera 1 id %s", cameras[0].deviceId);
+    console.log("camera 1 label %s", cameras[0].label);
+    console.log("camera 2 id %s", cameras[1].deviceId);
+    console.log("camera 2 label %s", cameras[1].label);
 
     // local stream 1
     constraints = {
@@ -130,14 +125,10 @@ let getlocalStream = () => {
           }
       }
 
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then((stream) => {
-        localStream = stream;
-        localStreamElement.srcObject = stream;
-      })
-      .catch(error => {
-        console.error('Stream not found: ', error);
-      });
+    console.log("getlocalStream: before localStream");
+    let stream = await navigator.mediaDevices.getUserMedia(constraints);
+    localStream = stream;
+    localStreamElement.srcObject = stream;
 
     // local stream 2
     constraints2 = {
@@ -147,15 +138,11 @@ let getlocalStream = () => {
           }
       }
 
-    navigator.mediaDevices.getUserMedia(constraints2)
-      .then((stream) => {
-        localStream2 = stream;
-        localStream2Element.srcObject = stream;
-      })
-      .catch(error => {
-        console.error('Stream not found: ', error);
-      });
-
+    console.log("getlocalStream: before localStream2");
+    let stream2 = await navigator.mediaDevices.getUserMedia(constraints2);
+    localStream2 = stream2;
+    localStream2Element.srcObject = stream2;
+    
     console.log("getlocalStream: ready for socket.connect()");
     socket.connect();
   })
@@ -174,12 +161,6 @@ let createPeerConnection = () => {
     console.log("createPeerConnection: after pc.addStream(localStream)");
     pc.addStream(localStream2);
     console.log("createPeerConnection: after pc.addStream(localStream2)");
-
-    console.log("createPeerConnection: allCameras length %d", allCameras.length);
-    console.log("createPeerConnection: camera 1 id %s", allCameras[0].deviceId);
-    console.log("createPeerConnection: camera 1 label %s", allCameras[0].label);
-    console.log("createPeerConnection: camera 2 id %s", allCameras[1].deviceId);
-    console.log("createPeerConnection: camera 2 label %s", allCameras[1].label);
 
     // QZ: add tracks here
     // allCameras.forEach(function(camera) {
@@ -203,21 +184,6 @@ let createPeerConnection = () => {
 
     // });
 
-    // QZ: old solution that does not work for multi-cameras
-    // pc.ontrack = (ev) => {
-    //   if (ev.streams && ev.streams[0]) {
-    //     remoteStreamElement.srcObject = ev.streams[0];
-    //   } else {
-    //     if (!inboundStream) {
-    //       inboundStream = new MediaStream();
-    //       remoteStreamElement.srcObject = inboundStream;
-    //     }
-    //     inboundStream.addTrack(ev.track);
-    //   }
-    // };
-    // pc.ontrack = function( event ) {
-    //     socket.emit('onRemoteStreamAdded', new MediaStream([event.track]));
-    // };
     console.log('createPeerConnection: PeerConnection created');
   } catch (error) {
     console.error('createPeerConnection: PeerConnection failed: ', error);
@@ -258,7 +224,6 @@ let onIceCandidate = (event) => {
 
 let onTrack = (event) => {
   console.log('onTrack: Add track');
-  // console.log('srcObject is %s', remoteStreamElement.srcObject);
   if (Object.is(remoteStreamElement.srcObject, null)) {
     console.log('onTrack: Go for remoteStreamElement');
     remoteStreamElement.srcObject = event.streams[0];
@@ -267,8 +232,6 @@ let onTrack = (event) => {
     console.log('onTrack: Go for remoteStream2Element');
     remoteStream2Element.srcObject = event.streams[0];
   }
-  // remoteStreamElement.srcObject = new MediaStream([event.track]);
-  // remoteStreamElement.srcObject = event.streams[1];
   console.log('onTrack: end');
 };
 
@@ -301,5 +264,3 @@ let toggleMic = () => {
 // Start connection
 console.log("main: before getlocalStream()");
 getlocalStream();
-// videoInputDevices = getConnectedCameras();
-// console.log("cameras number %d", videoInputDevices.length);
