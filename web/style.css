@@ -53,8 +53,8 @@ body, html {
   display: inline-block;
   zoom: 1;
   *display: inline;
-  width: 400px;
-  height: 400px;
+  width: 600px;
+  height: 600px;
   margin: 0 10px 10px 0;
 }
 

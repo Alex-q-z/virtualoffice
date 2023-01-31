@@ -1,6 +1,8 @@
 // Config variables: change them to point to your own servers
 // const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
-const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
+// const SIGNALING_SERVER_URL = 'http://localhost:9999';
+const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999'; // eudoram
+// const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 // const SIGNALING_SERVER_URL = 'http://localhost:9999';
 
 // const TURN_SERVER_URL = 'localhost:3478';
@@ -73,6 +75,9 @@ let localStream2;
 let localStream2Element = document.querySelector('#localStream2');
 let remoteStream2Element = document.querySelector('#remoteStream2');
 
+let localStreamDimensions = document.querySelector('p#localStreamdimensions');
+let localStream2Dimensions = document.querySelector('p#localStream2dimensions');
+
 let allCameras = [];
 
 let getlocalStream = () => {
@@ -119,11 +124,15 @@ let getlocalStream = () => {
     console.log("camera 2 label %s", cameras[1].label);
 
     // local stream 1
+    // for tuning resolution, see https://github.com/webrtc/samples/blob/gh-pages/src/content/getusermedia/resolution/js/main.js
     constraints = {
       'audio': {'echoCancellation': true},
       'video': {
-          'deviceId': cameras[0].deviceId
+          'deviceId': cameras[0].deviceId,
+          width: {exact: 1280}, 
+          height: {exact: 720} 
           }
+
       }
 
     console.log("getlocalStream: before localStream");
@@ -143,6 +152,12 @@ let getlocalStream = () => {
     let stream2 = await navigator.mediaDevices.getUserMedia(constraints2);
     localStream2 = stream2;
     localStream2Element.srcObject = stream2;
+
+    // retrieve video dimensions
+    // console.log("vid1dim: %s %s", localStreamElement.videoWidth, localStreamElement.videoHeight);
+    // console.log("vid2dim: %s %s", localStream2Element.videoWidth, localStream2Element.videoHeight);
+    // localStreamDimensions.innerText = 'Video 1 dimensions: ' + localStreamElement.videoWidth + 'x' + localStreamElement.videoHeight;
+    // localStreamDimensions.innerText = 'Video 2 dimensions: ' + localStream2Element.videoWidth + 'x' + localStream2Element.videoHeight;
     
     console.log("getlocalStream: ready for socket.connect()");
     socket.connect();
@@ -260,6 +275,43 @@ let toggleMic = () => {
   track.enabled = !track.enabled;
   let micClass = track.enabled ? "unmuted" : "muted";
   document.getElementById("toggleMic").className = micClass;
+};
+
+function displayVideo1Dimensions(whereSeen) {
+  console.log("vid1dim: %s %s", localStreamElement.videoWidth, localStreamElement.videoHeight);
+  // console.log("vid1fps: %s", localStream.getVideoTracks()[0].getSettings().frameRate);
+  if (localStreamElement.videoWidth) {
+    localStreamDimensions.innerText = 'Video 1 resolution: ' + localStreamElement.videoWidth + ' x ' + localStreamElement.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Frame rate: ' + localStream.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
+  } 
+  else {
+    localStreamDimensions.innerText = 'Video 1 is not ready yet';
+  }
+}
+
+function displayVideo2Dimensions(whereSeen) {
+  console.log("vid2dim: %s %s", localStream2Element.videoWidth, localStream2Element.videoHeight);
+  if (localStream2Element.videoWidth) {
+    localStream2Dimensions.innerText = 'Video 2 resolution: ' + localStream2Element.videoWidth + ' x ' + localStream2Element.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Frame rate: ' + localStream2.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
+  } 
+  else {
+    localStream2Dimensions.innerText = 'Video 2 is not ready yet';
+  }
+}
+
+localStreamElement.onloadedmetadata = () => {
+  displayVideo1Dimensions('loadedmetadata');
+};
+
+localStreamElement.onresize = () => {
+  displayVideo1Dimensions('resize');
+};
+
+localStream2Element.onloadedmetadata = () => {
+  displayVideo2Dimensions('loadedmetadata');
+};
+
+localStream2Element.onresize = () => {
+  displayVideo2Dimensions('resize');
 };
 
 // Start connection

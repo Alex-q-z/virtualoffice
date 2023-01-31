@@ -14,7 +14,7 @@ chrome://flags/#unsafely-treat-insecure-origin-as-secure
 
 Enable the `Insecure origins treated as secure` section and enter `http://localhost:6001`.
 
-For Firefix, type `about:config` and set the values of `media.devices.insecure.enabled` and `media.getusermedia.insecure.enabled` to be `true`
+For Firefix, type `about:config` and set the values of `media.devices.insecure.enabled` and `media.getusermedia.insecure.enabled` to be `true`.
 
 ### Signaling server
 
@@ -41,6 +41,8 @@ A web chat window will be started and hosted at `localhost:6001`. Feel free to c
 
 As the next steps, we plan to make this demo work for computers on different networks, and to support more clients and more cameras in the chat.
 
-## Reference
+## Useful resources
+
+The WebRTC official document provides a series of useful examples here: https://webrtc.github.io/samples/. Feel free to check out some of them!
 
 The implementation of the signaling server is adapted based on https://github.com/pfertyk/webrtc-working-example.
