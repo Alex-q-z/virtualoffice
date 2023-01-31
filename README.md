@@ -14,6 +14,8 @@ chrome://flags/#unsafely-treat-insecure-origin-as-secure
 
 Enable the `Insecure origins treated as secure` section and enter `http://localhost:6001`.
 
+For Firefix, type `about:config` and set the values of `media.devices.insecure.enabled` and `media.getusermedia.insecure.enabled` to be `true`
+
 ### Signaling server
 
 The signaling server is built with aiohttp and socketio. Run the following commands to install the required libraries first.
