@@ -4,6 +4,16 @@ This repository serves as the codebase for the virtual office project. Currently
 
 ## Get started
 
+### Enabling the Microphone/Camera in browser for (Local) Unsecure Origins 
+
+For Chrome, navigate to
+
+```
+chrome://flags/#unsafely-treat-insecure-origin-as-secure
+```
+
+Enable the `Insecure origins treated as secure` section and enter `http://localhost:6001`.
+
 ### Signaling server
 
 The signaling server is built with aiohttp and socketio. Run the following commands to install the required libraries first.
