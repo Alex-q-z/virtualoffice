@@ -1,8 +1,8 @@
 // Config variables: change them to point to your own servers
 // const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
 // const SIGNALING_SERVER_URL = 'http://localhost:9999';
-const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999'; // eudoram
-// const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
+// const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999'; // eudoram
+const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999'; // Stanford CS
 // const SIGNALING_SERVER_URL = 'http://localhost:9999';
 
 // const TURN_SERVER_URL = 'localhost:3478';
@@ -77,6 +77,9 @@ let remoteStream2Element = document.querySelector('#remoteStream2');
 
 let localStreamDimensions = document.querySelector('p#localStreamdimensions');
 let localStream2Dimensions = document.querySelector('p#localStream2dimensions');
+
+let remoteStreamDimensions = document.querySelector('p#remoteStreamdimensions');
+let remoteStream2Dimensions = document.querySelector('p#remoteStream2dimensions');
 
 let allCameras = [];
 
@@ -277,41 +280,78 @@ let toggleMic = () => {
   document.getElementById("toggleMic").className = micClass;
 };
 
-function displayVideo1Dimensions(whereSeen) {
+function displayLocalVideo1Dimensions(whereSeen) {
   console.log("vid1dim: %s %s", localStreamElement.videoWidth, localStreamElement.videoHeight);
   // console.log("vid1fps: %s", localStream.getVideoTracks()[0].getSettings().frameRate);
   if (localStreamElement.videoWidth) {
-    localStreamDimensions.innerText = 'Video 1 resolution: ' + localStreamElement.videoWidth + ' x ' + localStreamElement.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Frame rate: ' + localStream.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
+    localStreamDimensions.innerText = 'Video 1 resolution: ' + localStreamElement.videoWidth + ' x ' + localStreamElement.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Initial frame rate: ' + localStream.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
   } 
   else {
     localStreamDimensions.innerText = 'Video 1 is not ready yet';
   }
 }
 
-function displayVideo2Dimensions(whereSeen) {
+function displayLocalVideo2Dimensions(whereSeen) {
   console.log("vid2dim: %s %s", localStream2Element.videoWidth, localStream2Element.videoHeight);
   if (localStream2Element.videoWidth) {
-    localStream2Dimensions.innerText = 'Video 2 resolution: ' + localStream2Element.videoWidth + ' x ' + localStream2Element.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Frame rate: ' + localStream2.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
+    localStream2Dimensions.innerText = 'Video 2 resolution: ' + localStream2Element.videoWidth + ' x ' + localStream2Element.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Initial frame rate: ' + localStream2.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
   } 
   else {
     localStream2Dimensions.innerText = 'Video 2 is not ready yet';
   }
 }
 
+function displayRemoteVideo1Dimensions(whereSeen) {
+  // console.log("vid1dim: %s %s", localStreamElement.videoWidth, localStreamElement.videoHeight);
+  // console.log("vid1fps: %s", localStream.getVideoTracks()[0].getSettings().frameRate);
+  if (remoteStreamElement.videoWidth) {
+    remoteStreamDimensions.innerText = 'Video 1 resolution: ' + remoteStreamElement.videoWidth + ' x ' + remoteStreamElement.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Initial frame rate: ' + remoteStreamElement.srcObject.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
+  } 
+  else {
+    remoteStreamDimensions.innerText = 'Video 1 is not ready yet';
+  }
+}
+
+function displayRemoteVideo2Dimensions(whereSeen) {
+  // console.log("vid2dim: %s %s", localStream2Element.videoWidth, localStream2Element.videoHeight);
+  if (remoteStream2Element.videoWidth) {
+    remoteStream2Dimensions.innerText = 'Video 2 resolution: ' + remoteStream2Element.videoWidth + ' x ' + remoteStream2Element.videoHeight + '\xa0\xa0\xa0\xa0\xa0' + 'Initial frame rate: ' + remoteStream2Element.srcObject.getVideoTracks()[0].getSettings().frameRate.toFixed(2);
+  } 
+  else {
+    remoteStream2Dimensions.innerText = 'Video 2 is not ready yet';
+  }
+}
+
 localStreamElement.onloadedmetadata = () => {
-  displayVideo1Dimensions('loadedmetadata');
+  displayLocalVideo1Dimensions('loadedmetadata');
 };
 
 localStreamElement.onresize = () => {
-  displayVideo1Dimensions('resize');
+  displayLocalVideo1Dimensions('resize');
 };
 
 localStream2Element.onloadedmetadata = () => {
-  displayVideo2Dimensions('loadedmetadata');
+  displayLocalVideo2Dimensions('loadedmetadata');
 };
 
 localStream2Element.onresize = () => {
-  displayVideo2Dimensions('resize');
+  displayLocalVideo2Dimensions('resize');
+};
+
+remoteStreamElement.onloadedmetadata = () => {
+  displayRemoteVideo1Dimensions('loadedmetadata');
+};
+
+remoteStreamElement.onresize = () => {
+  displayRemoteVideo1Dimensions('resize');
+};
+
+remoteStream2Element.onloadedmetadata = () => {
+  displayRemoteVideo2Dimensions('loadedmetadata');
+};
+
+remoteStream2Element.onresize = () => {
+  displayRemoteVideo2Dimensions('resize');
 };
 
 // Start connection
