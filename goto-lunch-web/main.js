@@ -7,17 +7,24 @@ const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
 const PC_CONFIG = {};
 
 // button-related parameters and events
-const startButton = document.getElementById('startButton');
-const callButton = document.getElementById('callButton');
-const upgradeButton = document.getElementById('upgradeButton');
-// const hangupButton = document.getElementById('hangupButton');
-callButton.disabled = true;
-upgradeButton.disabled = true;
-// hangupButton.disabled = true;
-startButton.onclick = start;
-callButton.onclick = call;
-upgradeButton.onclick = videoOn;
-// hangupButton.onclick = hangup;
+const connectButton = document.getElementById('connectButton');
+const videoOnButton = document.getElementById('videoOnButton');
+const videoOffButton = document.getElementById('videoOffButton');
+const audioOnButton = document.getElementById('audioOnButton');
+const audioOffButton = document.getElementById('audioOffButton');
+const disconnectButton = document.getElementById('disconnectButton');
+connectButton.disabled = false;
+videoOnButton.disabled = true;
+videoOffButton.disabled = true;
+audioOnButton.disabled = true;
+audioOffButton.disabled = true;
+disconnectButton.disabled = true;
+connectButton.onclick = callConnect;
+videoOnButton.onclick = videoOn;
+videoOffButton.onclick = videoOff;
+audioOnButton.onclick = audioOn;
+audioOffButton.onclick = audioOff;
+disconnectButton.onclick = callDisconnect;
 
 // Signaling methods
 let socket = io(SIGNALING_SERVER_URL, { autoConnect: false });
@@ -41,10 +48,13 @@ let sendData = (data) => {
 };
 
 // WebRTC methods
-let pc;
-let localStream;
+let pc = null;
+let localStream = null;
 let remoteStreamElement = document.querySelector('#remoteStream');
 let localStreamElement = document.querySelector('#localStream');
+
+let videoSender;
+let audioSender;
 
 let getlocalStream = () => {
   // QZ: my version for multiple cameras
@@ -106,6 +116,12 @@ let sendOffer = () => {
 
 let sendAnswer = () => {
   console.log('sendAnswer: enter sendAnswer');
+  console.log('sendAnswer: before, pc state is %s', pc.signalingState);
+  if (pc.signalingState == "stable") {
+    console.log('sendAnswer: we will change the stable state');
+    pc.signalingState = "have-local-offer";
+  }
+  console.log('sendAnswer: after, pc state is %s', pc.signalingState);
   pc.createAnswer().then(
     setAndSendLocalDescription,
     (error) => { console.error('sendAnswer: send answer failed: ', error); }
@@ -128,6 +144,12 @@ let onIceCandidate = (event) => {
   }
 };
 
+let closeConnection = () => {
+  sendData({
+    type: 'close'
+  });
+};
+
 function onIceStateChange(pc, event) {
   if (pc) {
     console.log(`PC ICE state: ${pc.iceConnectionState}`);
@@ -145,17 +167,28 @@ let handleSignalingData = (data) => {
   switch (data.type) {
     case 'offer':
       console.log('handleSignalingData: case offer');
-      createPeerConnection();
+      if (pc == null) {
+        console.log("handleSignalingData offer: pc is undefined");
+        createPeerConnection();
+      }
+      else {
+        console.log("handleSignalingData offer: signalingState is %s", pc.signalingState);
+      }
       pc.setRemoteDescription(new RTCSessionDescription(data));
       sendAnswer();
       break;
     case 'answer':
       console.log('handleSignalingData: case answer');
+      console.log("handleSignalingData answer: signalingState is %s", pc.signalingState);
       pc.setRemoteDescription(new RTCSessionDescription(data));
       break;
     case 'candidate':
       console.log('handleSignalingData: case candidate');
+      console.log("handleSignalingData candidate: signalingState is %s", pc.signalingState);
       pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      break;
+    case 'close':
+      callDisconnect();
       break;
   }
 };
@@ -167,56 +200,140 @@ let toggleMic = () => {
   document.getElementById("toggleMic").className = micClass;
 };
 
-function start() {
-  console.log('in start(): but we do nothing');
-  startButton.disabled = true;
-  callButton.disabled = false;
-}
-
-function call() {
-  console.log('in call(): before establishing connection with socket.connect()');
+function callConnect() {
+  console.log('in callConnect(): before establishing connection with socket.connect()');
+  
   // call socket.connect() to create webrtc connection
   socket.connect();
 
   // set button states
-  console.log('in call(): before setting button states');
-  callButton.disabled = true;
-  upgradeButton.disabled = false;
-  hangupButton.disabled = false;
-
-  // establish connection
-  // pc1 = new RTCPeerConnection(PC_CONFIG);
-  // pc1.onicecandidate = e => onIceCandidate(pc1, e);
-  // pc1.oniceconnectionstatechange = e => onIceStateChange(pc1, e);
-  // pc1.createOffer(offerOptions).then(onCreateOfferSuccess, onCreateSessionDescriptionError);
+  console.log('in callConnect(): before setting button states');
+  connectButton.disabled = true;
+  videoOnButton.disabled = false;
+  audioOnButton.disabled = false;
+  disconnectButton.disabled = false;
 }
 
 function videoOn() {
   console.log('in videoOn(): enter videoOn');
-  upgradeButton.disabled = true;
-  navigator.mediaDevices
-      .getUserMedia({audio: true, video: true})
-      .then(stream => {
-        console.log('in videoOn(): before assigning stream to localStream');
-        localStream = stream;
-        localStreamElement.srcObject = stream;
+  videoOnButton.disabled = true;
+  videoOffButton.disabled = false;
 
-        // QZ: getTrack and addTrack so remote client can see local streams
-        console.log('in videoOn(): before getTrack');
-        const videoTracks = stream.getVideoTracks();
-        const audioTracks = stream.getAudioTracks();
+  if (localStream == null || localStream.getVideoTracks()[0] == undefined) {
+    let audioState = ((localStream == null || localStream.getAudioTracks()[0] == undefined) ? false : true);
+    navigator.mediaDevices
+        .getUserMedia({audio: audioState, video: true})
+        .then(stream => {
+          console.log('in videoOn(): before assigning stream to localStream');
+          localStream = stream;
+          localStreamElement.srcObject = stream;
 
-        console.log('in videoOn(): before addTrack');
-        pc.addTrack(videoTracks[0], localStream);
-        pc.addTrack(audioTracks[0], localStream);
+          // QZ: getTrack and addTrack so remote client can see local streams
+          console.log('in videoOn(): before getTrack');
+          if (audioState) {
+            const audioTracks = stream.getAudioTracks();
+            audioSender = pc.addTrack(audioTracks[0], localStream);
+          }
+          const videoTracks = stream.getVideoTracks();
+          
+          console.log('in videoOn(): before addTrack');
+          videoSender = pc.addTrack(videoTracks[0], localStream);
 
-        console.log('in videoOn(): before sendOffer()');
-        sendOffer();
-        // return pc.createOffer();
-      })
-      .catch(error => {
-        console.error('in videoOn(): we met an error: ', error);
-      });
+          console.log('in videoOn(): before sendOffer()');
+          sendOffer();
+          // return pc.createOffer();
+        })
+        .catch(error => {
+          console.error('in videoOn(): we met an error: ', error);
+        });
+  }
+  else {
+    let videoTrack = localStream.getVideoTracks()[0];
+    videoTrack.enabled = !videoTrack.enabled;
+  }
+}
+
+function audioOn() {
+  audioOnButton.disabled = true;
+  audioOffButton.disabled = false;
+
+  if (localStream == null || localStream.getAudioTracks()[0] == undefined) {
+    let videoState = ((localStream == null || localStream.getVideoTracks()[0] == undefined) ? false : true);
+    navigator.mediaDevices
+        .getUserMedia({audio: true, video: videoState})
+        .then(stream => {
+          console.log('in audioOn(): before assigning stream to localStream');
+          localStream = stream;
+          localStreamElement.srcObject = stream;
+
+          // QZ: getTrack and addTrack so remote client can see local streams
+          console.log('in audioOn(): before getTrack');
+          if (videoState) {
+            const videoTracks = stream.getVideoTracks();
+            videoSender = pc.addTrack(videoTracks[0], localStream);
+          }
+          const audioTracks = stream.getAudioTracks();
+
+          console.log('in audioOn(): before addTrack');
+          audioSender = pc.addTrack(audioTracks[0], localStream);
+
+          console.log('in audioOn(): before sendOffer()');
+          sendOffer();
+          // return pc.createOffer();
+        })
+        .catch(error => {
+          console.error('in audioOn(): we met an error: ', error);
+        });
+  }
+  else {
+    let audioTrack = localStream.getAudioTracks()[0];
+    audioTrack.enabled = !audioTrack.enabled;
+  }
+}
+
+function videoOff() {
+  console.log('in videoOff(): enter videoOff');
+  videoOnButton.disabled = false;
+  videoOffButton.disabled = true;
+  let videoTrack = localStream.getVideoTracks()[0];
+  videoTrack.enabled = !videoTrack.enabled;
+}
+
+function audioOff() {
+  console.log('in audioOff(): enter audioOff');
+  audioOnButton.disabled = false;
+  audioOffButton.disabled = true;
+  let audioTrack = localStream.getAudioTracks()[0];
+  audioTrack.enabled = !audioTrack.enabled;
+}
+
+function callDisconnect() {
+  // set button states
+  videoOnButton.disabled = true;
+  videoOffButton.disabled = true;
+  audioOnButton.disabled = true;
+  audioOffButton.disabled = true;
+  connectButton.disabled = false;
+  disconnectButton.disabled = true;
+
+  pc.close();
+  pc = null;
+  closeConnection();
+
+  const videoTracks = localStream.getVideoTracks();
+  videoTracks.forEach(videoTrack => {
+    videoTrack.stop();
+    localStream.removeTrack(videoTrack);
+  });
+
+  const audioTracks = localStream.getAudioTracks();
+  audioTracks.forEach(audioTrack => {
+    audioTrack.stop();
+    localStream.removeTrack(audioTrack);
+  });
+
+  localStream = null;
+  localStreamElement.srcObject = null;
 }
 
 // Start connection
