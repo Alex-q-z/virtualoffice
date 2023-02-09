@@ -1,5 +1,6 @@
 // Config variables: change them to point to your own servers
-const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
+// const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
+const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999';
 // const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 // const SIGNALING_SERVER_URL = 'http://localhost:9999';
 
@@ -207,6 +208,10 @@ let toggleMic = () => {
   document.getElementById("toggleMic").className = micClass;
 };
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function callConnect() {
   console.log('in callConnect(): before establishing connection with socket.connect()');
   
@@ -314,7 +319,7 @@ function audioOff() {
   audioTrack.enabled = !audioTrack.enabled;
 }
 
-function callDisconnect() {
+async function callDisconnect() {
   // set button states
   videoOnButton.disabled = true;
   videoOffButton.disabled = true;
@@ -327,25 +332,28 @@ function callDisconnect() {
   pc = null;
   if (!other_side_closed) {
     closeConnection();
-    other_side_closed = true;
   }
 
-  // const videoTracks = localStream.getVideoTracks();
-  // videoTracks.forEach(videoTrack => {
-  //   videoTrack.stop();
-  //   localStream.removeTrack(videoTrack);
-  // });
+  if (localStream != null) {
+    const videoTracks = localStream.getVideoTracks();
+    videoTracks.forEach(videoTrack => {
+      videoTrack.stop();
+      localStream.removeTrack(videoTrack);
+    });
 
-  // const audioTracks = localStream.getAudioTracks();
-  // audioTracks.forEach(audioTrack => {
-  //   audioTrack.stop();
-  //   localStream.removeTrack(audioTrack);
-  // });
+    const audioTracks = localStream.getAudioTracks();
+    audioTracks.forEach(audioTrack => {
+      audioTrack.stop();
+      localStream.removeTrack(audioTrack);
+    });
 
-  localStream = null;
+    localStream = null;
+  }
+
   localStreamElement.srcObject = null;
 
   // finally, close the socket
+  await sleep(500);
   socket.disconnect();
 }
 

@@ -1,6 +1,6 @@
 // Config variables: change them to point to your own servers
-// const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
-const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
+const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
+// const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 // const SIGNALING_SERVER_URL = 'http://localhost:9999';
 
 // for communication that is local
@@ -40,16 +40,7 @@ let getlocalStream = () => {
   navigator.enumerateDevices(async function(devices) {
     cameras = [];
     devices.forEach(async function(device) {
-      // if (!device.deviceId) {
-      //     device.deviceId = device.id;
-      // }
-      // if (!device.id) {
-      //     device.id = device.deviceId;
-      // }
       if (device.kind === 'video' || device.kind === 'videoinput') {
-          // if (cameras.indexOf(device) === -1) {
-          //   cameras.push(device);
-          // }
           cameras.push(device);
       }
     });
