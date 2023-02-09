@@ -41,6 +41,7 @@ socket.on('ready', () => {
   createPeerConnection();
   console.log('socket on: after createPeerConnection, before sendOffer');
   sendOffer();
+  socketReady = true;
 });
 
 let sendData = (data) => {
@@ -53,8 +54,13 @@ let localStream = null;
 let remoteStreamElement = document.querySelector('#remoteStream');
 let localStreamElement = document.querySelector('#localStream');
 
+let socketReady = false;
+
 let videoSender;
 let audioSender;
+
+// parameters
+let other_side_closed = false;
 
 let getlocalStream = () => {
   // QZ: my version for multiple cameras
@@ -188,6 +194,7 @@ let handleSignalingData = (data) => {
       pc.addIceCandidate(new RTCIceCandidate(data.candidate));
       break;
     case 'close':
+      other_side_closed = true;
       callDisconnect();
       break;
   }
@@ -318,22 +325,28 @@ function callDisconnect() {
 
   pc.close();
   pc = null;
-  closeConnection();
+  if (!other_side_closed) {
+    closeConnection();
+    other_side_closed = true;
+  }
 
-  const videoTracks = localStream.getVideoTracks();
-  videoTracks.forEach(videoTrack => {
-    videoTrack.stop();
-    localStream.removeTrack(videoTrack);
-  });
+  // const videoTracks = localStream.getVideoTracks();
+  // videoTracks.forEach(videoTrack => {
+  //   videoTrack.stop();
+  //   localStream.removeTrack(videoTrack);
+  // });
 
-  const audioTracks = localStream.getAudioTracks();
-  audioTracks.forEach(audioTrack => {
-    audioTrack.stop();
-    localStream.removeTrack(audioTrack);
-  });
+  // const audioTracks = localStream.getAudioTracks();
+  // audioTracks.forEach(audioTrack => {
+  //   audioTrack.stop();
+  //   localStream.removeTrack(audioTrack);
+  // });
 
   localStream = null;
   localStreamElement.srcObject = null;
+
+  // finally, close the socket
+  socket.disconnect();
 }
 
 // Start connection
