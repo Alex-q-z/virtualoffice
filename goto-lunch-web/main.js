@@ -1,6 +1,6 @@
 // Config variables: change them to point to your own servers
-// const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
-const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999';
+const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
+// const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999';
 // const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 // const SIGNALING_SERVER_URL = 'http://localhost:9999';
 
@@ -13,18 +13,24 @@ const videoOnButton = document.getElementById('videoOnButton');
 const videoOffButton = document.getElementById('videoOffButton');
 const audioOnButton = document.getElementById('audioOnButton');
 const audioOffButton = document.getElementById('audioOffButton');
+const startPeakButton = document.getElementById('startPeakButton');
+const stopPeakButton = document.getElementById('stopPeakButton');
 const disconnectButton = document.getElementById('disconnectButton');
 connectButton.disabled = false;
 videoOnButton.disabled = true;
 videoOffButton.disabled = true;
 audioOnButton.disabled = true;
 audioOffButton.disabled = true;
+startPeakButton.disabled = true;
+stopPeakButton.disabled = true;
 disconnectButton.disabled = true;
 connectButton.onclick = callConnect;
 videoOnButton.onclick = videoOn;
 videoOffButton.onclick = videoOff;
 audioOnButton.onclick = audioOn;
 audioOffButton.onclick = audioOff;
+startPeakButton.onclick = startPeak;
+stopPeakButton.onclick = stopPeak;
 disconnectButton.onclick = callDisconnect;
 
 // Signaling methods
@@ -157,6 +163,30 @@ let closeConnection = () => {
   });
 };
 
+let otherSideVideoOn = () => {
+  sendData({
+    type: 'video_on'
+  });
+};
+
+let otherSideVideoOff = () => {
+  sendData({
+    type: 'video_off'
+  });
+};
+
+let otherSideAudioOn = () => {
+  sendData({
+    type: 'audio_on'
+  });
+};
+
+let otherSideAudioOff = () => {
+  sendData({
+    type: 'audio_off'
+  });
+};
+
 function onIceStateChange(pc, event) {
   if (pc) {
     console.log(`PC ICE state: ${pc.iceConnectionState}`);
@@ -198,6 +228,18 @@ let handleSignalingData = (data) => {
       other_side_closed = true;
       callDisconnect();
       break;
+    case 'video_on':
+      videoOn();
+      break;
+    case 'audio_on':
+      audioOn();
+      break;
+    case 'video_off':
+      videoOff();
+      break;
+    case 'audio_off':
+      audioOff();
+      break;
   }
 };
 
@@ -223,6 +265,7 @@ function callConnect() {
   connectButton.disabled = true;
   videoOnButton.disabled = false;
   audioOnButton.disabled = false;
+  startPeakButton.disabled = false;
   disconnectButton.disabled = false;
 }
 
@@ -317,6 +360,30 @@ function audioOff() {
   audioOffButton.disabled = true;
   let audioTrack = localStream.getAudioTracks()[0];
   audioTrack.enabled = !audioTrack.enabled;
+}
+
+async function startPeak() {
+  console.log('in startPeak(): before videoOn');
+  videoOn();
+  console.log('in startPeak(): before audioOn');
+  audioOn();
+  await sleep(500);
+  console.log('in startPeak(): before otherSideVideoOn');
+  otherSideVideoOn();
+  console.log('in startPeak(): before otherSideAudioOn');
+  otherSideAudioOn();
+  startPeakButton.disabled = true;
+  stopPeakButton.disabled = false;
+}
+
+async function stopPeak() {
+  videoOff();
+  audioOff();
+  await sleep(500);
+  otherSideVideoOff();
+  otherSideAudioOff();
+  startPeakButton.disabled = false;
+  stopPeakButton.disabled = true;
 }
 
 async function callDisconnect() {
