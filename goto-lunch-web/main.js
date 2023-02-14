@@ -1,8 +1,5 @@
 // Config variables: change them to point to your own servers
-const SIGNALING_SERVER_URL = 'http://10.5.136.159:9999';
-// const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999';
-// const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
-// const SIGNALING_SERVER_URL = 'http://localhost:9999';
+const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 
 // for communication that is local
 const PC_CONFIG = {};
@@ -187,6 +184,18 @@ let otherSideAudioOff = () => {
   });
 };
 
+let otherSideVideoAndAudioOn = () => {
+  sendData({
+    type: 'video_and_audio_on'
+  });
+}
+
+let otherSideVideoAndAudioOff = () => {
+  sendData({
+    type: 'video_and_audio_off'
+  });
+}
+
 function onIceStateChange(pc, event) {
   if (pc) {
     console.log(`PC ICE state: ${pc.iceConnectionState}`);
@@ -240,6 +249,16 @@ let handleSignalingData = (data) => {
     case 'audio_off':
       audioOff();
       break;
+    case 'video_and_audio_on':
+      videoAndAudioOn();
+      startPeakButton.disabled = true;
+      stopPeakButton.disabled = false;
+      break;
+    case 'video_and_audio_off':
+      videoAndAudioOff();
+      startPeakButton.disabled = false;
+      stopPeakButton.disabled = true;
+      break;
   }
 };
 
@@ -282,6 +301,7 @@ function videoOn() {
           console.log('in videoOn(): before assigning stream to localStream');
           localStream = stream;
           localStreamElement.srcObject = stream;
+          localStreamElement.muted = true;
 
           // QZ: getTrack and addTrack so remote client can see local streams
           console.log('in videoOn(): before getTrack');
@@ -309,6 +329,7 @@ function videoOn() {
 }
 
 function audioOn() {
+  console.log('in audioOn(): enter audioOn');
   audioOnButton.disabled = true;
   audioOffButton.disabled = false;
 
@@ -320,6 +341,7 @@ function audioOn() {
           console.log('in audioOn(): before assigning stream to localStream');
           localStream = stream;
           localStreamElement.srcObject = stream;
+          localStreamElement.muted = true; // QZ: added for muting local audio
 
           // QZ: getTrack and addTrack so remote client can see local streams
           console.log('in audioOn(): before getTrack');
@@ -362,26 +384,72 @@ function audioOff() {
   audioTrack.enabled = !audioTrack.enabled;
 }
 
+function videoAndAudioOn() {
+  console.log('in videoAndAudioOn(): enter videoAndAudioOn');
+  videoOnButton.disabled = true;
+  videoOffButton.disabled = false;
+  audioOnButton.disabled = true;
+  audioOffButton.disabled = false;
+
+  if (localStream == null) {
+    navigator.mediaDevices
+        .getUserMedia({audio: true, video: true})
+        .then(stream => {
+          console.log('in videoAndAudioOn(): before assigning stream to localStream');
+          localStream = stream;
+          localStreamElement.srcObject = stream;
+          localStreamElement.muted = true;
+
+          // QZ: getTrack and addTrack so remote client can see local streams
+          console.log('in videoAndAudioOn(): before getTrack');
+          const videoTracks = stream.getVideoTracks();
+          const audioTracks = stream.getAudioTracks();
+          
+          console.log('in videoAndAudioOn(): before addTrack');
+          videoSender = pc.addTrack(videoTracks[0], localStream);
+          audioSender = pc.addTrack(audioTracks[0], localStream);
+
+          console.log('in videoAndAudioOn(): before sendOffer()');
+          sendOffer();
+        })
+        .catch(error => {
+          console.error('in videoAndAudioOn(): we met an error: ', error);
+        });
+  }
+  else {
+    let videoTrack = localStream.getVideoTracks()[0];
+    let audioTrack = localStream.getAudioTracks()[0];
+    videoTrack.enabled = !videoTrack.enabled;
+    audioTrack.enabled = !audioTrack.enabled;
+  }
+
+}
+
+function videoAndAudioOff() {
+  console.log('in videoAndAudioOff(): enter videoAndAudioOff');
+  videoOnButton.disabled = false;
+  videoOffButton.disabled = true;
+  audioOnButton.disabled = false;
+  audioOffButton.disabled = true;
+
+  let videoTrack = localStream.getVideoTracks()[0];
+  let audioTrack = localStream.getAudioTracks()[0];
+  videoTrack.enabled = !videoTrack.enabled;
+  audioTrack.enabled = !audioTrack.enabled;
+}
+
 async function startPeak() {
-  console.log('in startPeak(): before videoOn');
-  videoOn();
-  console.log('in startPeak(): before audioOn');
-  audioOn();
-  await sleep(500);
-  console.log('in startPeak(): before otherSideVideoOn');
-  otherSideVideoOn();
-  console.log('in startPeak(): before otherSideAudioOn');
-  otherSideAudioOn();
+  videoAndAudioOn();
+  await sleep(1000);
+  otherSideVideoAndAudioOn();
   startPeakButton.disabled = true;
   stopPeakButton.disabled = false;
 }
 
 async function stopPeak() {
-  videoOff();
-  audioOff();
-  await sleep(500);
-  otherSideVideoOff();
-  otherSideAudioOff();
+  videoAndAudioOff();
+  await sleep(1000);
+  otherSideVideoAndAudioOff();
   startPeakButton.disabled = false;
   stopPeakButton.disabled = true;
 }
