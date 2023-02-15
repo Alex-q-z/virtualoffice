@@ -5,6 +5,7 @@ const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 const PC_CONFIG = {};
 
 // button-related parameters and events
+const startButton = document.getElementById('startButton');
 const connectButton = document.getElementById('connectButton');
 const videoOnButton = document.getElementById('videoOnButton');
 const videoOffButton = document.getElementById('videoOffButton');
@@ -13,7 +14,8 @@ const audioOffButton = document.getElementById('audioOffButton');
 const startPeakButton = document.getElementById('startPeakButton');
 const stopPeakButton = document.getElementById('stopPeakButton');
 const disconnectButton = document.getElementById('disconnectButton');
-connectButton.disabled = false;
+startButton.disabled = false;
+connectButton.disabled = true;
 videoOnButton.disabled = true;
 videoOffButton.disabled = true;
 audioOnButton.disabled = true;
@@ -21,6 +23,7 @@ audioOffButton.disabled = true;
 startPeakButton.disabled = true;
 stopPeakButton.disabled = true;
 disconnectButton.disabled = true;
+startButton.onclick = start;
 connectButton.onclick = callConnect;
 videoOnButton.onclick = videoOn;
 videoOffButton.onclick = videoOff;
@@ -29,6 +32,13 @@ audioOffButton.onclick = audioOff;
 startPeakButton.onclick = startPeak;
 stopPeakButton.onclick = stopPeak;
 disconnectButton.onclick = callDisconnect;
+
+// device-selection-related parameters and events
+const videoSelect = document.querySelector('select#videoSource');
+const audioInputSelect = document.querySelector('select#audioSource');
+const selectors = [videoSelect, audioInputSelect];
+let videoSource = null;
+let audioSource = null;
 
 // Signaling methods
 let socket = io(SIGNALING_SERVER_URL, { autoConnect: false });
@@ -262,15 +272,74 @@ let handleSignalingData = (data) => {
   }
 };
 
-let toggleMic = () => {
-  let track = localStream.getAudioTracks()[0];
-  track.enabled = !track.enabled;
-  let micClass = track.enabled ? "unmuted" : "muted";
-  document.getElementById("toggleMic").className = micClass;
-};
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function gotDevices(deviceInfos) {
+  // Handles being called several times to update labels. Preserve values.
+  const values = selectors.map(select => select.value);
+  selectors.forEach(select => {
+    while (select.firstChild) {
+      select.removeChild(select.firstChild);
+    }
+  });
+  for (let i = 0; i !== deviceInfos.length; ++i) {
+    const deviceInfo = deviceInfos[i];
+    const option = document.createElement('option');
+    option.value = deviceInfo.deviceId;
+    if (deviceInfo.kind === 'audioinput') {
+      option.text = deviceInfo.label || `microphone ${audioInputSelect.length + 1}`;
+      audioInputSelect.appendChild(option);
+      console.log('Audio source device: ', deviceInfo);
+    } else if (deviceInfo.kind === 'videoinput') {
+      option.text = deviceInfo.label || `camera ${videoSelect.length + 1}`;
+      videoSelect.appendChild(option);
+      console.log('Video source device: ', deviceInfo);
+    } else {
+      console.log('Some other kind of source/device: ', deviceInfo);
+    }
+  }
+  selectors.forEach((select, selectorIndex) => {
+    if (Array.prototype.slice.call(select.childNodes).some(n => n.value === values[selectorIndex])) {
+      select.value = values[selectorIndex];
+    }
+  });
+}
+
+function gotStream(stream) {
+  // window.stream = stream; // make stream available to console
+  // localStreamElement.srcObject = stream;
+  // Refresh button list in case labels have become available
+  return navigator.mediaDevices.enumerateDevices();
+}
+
+function handleError(error) {
+  console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+}
+
+function start() {
+  startButton.disabled = true;
+  connectButton.disabled = false;
+  reset();
+}
+
+function reset() {
+  // obtain all local device information, and configure video/audio source select
+  console.log("in reset(): enter reset");
+  // if (window.stream) {
+  //   window.stream.getTracks().forEach(track => {
+  //     track.stop();
+  //   });
+  // }
+
+  audioSource = audioInputSelect.value;
+  console.log("in reset(): audioSource is: ", audioSource);
+  videoSource = videoSelect.value;
+  console.log("in reset(): videoSource is: ", videoSource);
+  
+  console.log("in reset(): before navigator.mediaDevices.enumerateDevices()");
+  navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
 }
 
 function callConnect() {
@@ -296,7 +365,8 @@ function videoOn() {
   if (localStream == null || localStream.getVideoTracks()[0] == undefined) {
     let audioState = ((localStream == null || localStream.getAudioTracks()[0] == undefined) ? false : true);
     navigator.mediaDevices
-        .getUserMedia({audio: audioState, video: true})
+        // .getUserMedia({audio: audioState, video: true})
+        .getUserMedia({audio: audioState, video: {deviceId: videoSource ? {exact: videoSource} : undefined}})
         .then(stream => {
           console.log('in videoOn(): before assigning stream to localStream');
           localStream = stream;
@@ -336,7 +406,8 @@ function audioOn() {
   if (localStream == null || localStream.getAudioTracks()[0] == undefined) {
     let videoState = ((localStream == null || localStream.getVideoTracks()[0] == undefined) ? false : true);
     navigator.mediaDevices
-        .getUserMedia({audio: true, video: videoState})
+        // .getUserMedia({audio: true, video: videoState})
+        .getUserMedia({audio: {deviceId: audioSource ? {exact: audioSource} : undefined}, video: videoState})
         .then(stream => {
           console.log('in audioOn(): before assigning stream to localStream');
           localStream = stream;
@@ -440,7 +511,7 @@ function videoAndAudioOff() {
 
 async function startPeak() {
   videoAndAudioOn();
-  await sleep(1000);
+  // await sleep(1000);
   otherSideVideoAndAudioOn();
   startPeakButton.disabled = true;
   stopPeakButton.disabled = false;
@@ -448,7 +519,7 @@ async function startPeak() {
 
 async function stopPeak() {
   videoAndAudioOff();
-  await sleep(1000);
+  // await sleep(1000);
   otherSideVideoAndAudioOff();
   startPeakButton.disabled = false;
   stopPeakButton.disabled = true;
@@ -494,3 +565,6 @@ async function callDisconnect() {
 
 // Start connection
 console.log("main: starting everything");
+
+videoSelect.onchange = reset;
+audioInputSelect.onchange = reset;

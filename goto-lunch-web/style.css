@@ -16,6 +16,11 @@ video {
   vertical-align: top;
 }
 
+div.select {
+  display: inline-block;
+  margin: 0 0 1em 0;
+}
+
 #videoal {
   margin-left: 80px;
 }
