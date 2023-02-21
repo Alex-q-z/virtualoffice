@@ -1,10 +1,11 @@
 // Config variables: change them to point to your own servers
 const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
+// const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999';
 
 // for communication that is local
 const PC_CONFIG = {};
 
-// button-related parameters and events
+// button-associated HTML elements
 const startButton = document.getElementById('startButton');
 const connectButton = document.getElementById('connectButton');
 const videoOnButton = document.getElementById('videoOnButton');
@@ -14,6 +15,8 @@ const audioOffButton = document.getElementById('audioOffButton');
 const startPeakButton = document.getElementById('startPeakButton');
 const stopPeakButton = document.getElementById('stopPeakButton');
 const disconnectButton = document.getElementById('disconnectButton');
+
+// button initial status
 startButton.disabled = false;
 connectButton.disabled = true;
 videoOnButton.disabled = true;
@@ -23,6 +26,8 @@ audioOffButton.disabled = true;
 startPeakButton.disabled = true;
 stopPeakButton.disabled = true;
 disconnectButton.disabled = true;
+
+// button onclick events
 startButton.onclick = start;
 connectButton.onclick = callConnect;
 videoOnButton.onclick = videoOn;
@@ -40,12 +45,17 @@ const selectors = [videoSelect, audioInputSelect];
 let videoSource = null;
 let audioSource = null;
 
-// Signaling methods
+// signaling method
 let socket = io(SIGNALING_SERVER_URL, { autoConnect: false });
 
+// handler for events emitted from the server
 socket.on('data', (data) => {
   console.log('socket on: Data received: ', data);
   handleSignalingData(data);
+});
+
+socket.on('broadcast_update', (all_users_data) => {
+  console.log('socket on: broadcast_update received: ', all_users_data);
 });
 
 socket.on('ready', () => {
@@ -73,45 +83,41 @@ let socketReady = false;
 let videoSender;
 let audioSender;
 
-// parameters
+// connection-related parameters
 let other_side_closed = false;
 
-let getlocalStream = () => {
-  // QZ: my version for multiple cameras
-  console.log("getlocalStream: enter getLocalStream");
-
-  navigator.enumerateDevices(async function(devices) {
-    cameras = [];
-    devices.forEach(async function(device) {
-      if (device.kind === 'video' || device.kind === 'videoinput') {
-          cameras.push(device);
-      }
-    });
-    
-    console.log("getlocalStream: after enumerateDevices(), cameras number %d", cameras.length);
-
-    console.log("camera 1 id %s", cameras[0].deviceId);
-    console.log("camera 1 label %s", cameras[0].label);
-
-    // local stream
-    constraints = {
-      'audio': {'echoCancellation': true},
-      'video': {
-          'deviceId': cameras[0].deviceId
-          }
-      }
-
-    console.log("getlocalStream: before localStream");
-    let stream = await navigator.mediaDevices.getUserMedia(constraints);
-    localStream = stream;
-    localStreamElement.srcObject = stream;
-
-    console.log("getlocalStream: ready for socket.connect()");
-    socket.connect();
-  })
-
+// dummy audio and dummy video tracks
+let silence = () => {
+  let ctx = new AudioContext(), oscillator = ctx.createOscillator();
+  let dst = oscillator.connect(ctx.createMediaStreamDestination());
+  oscillator.start();
+  return Object.assign(dst.stream.getAudioTracks()[0], {enabled: false});
 }
 
+let get_silent_audio_track = () => {
+  let ctx = new AudioContext(), oscillator = ctx.createOscillator();
+  let dst = oscillator.connect(ctx.createMediaStreamDestination());
+  oscillator.start();
+  return dst.stream.getAudioTracks()[0];
+}
+
+let black = ({width = 640, height = 480} = {}) => {
+  let canvas = Object.assign(document.createElement("canvas"), {width, height});
+  canvas.getContext('2d').fillRect(0, 0, width, height);
+  let stream = canvas.captureStream();
+  return Object.assign(stream.getVideoTracks()[0], {enabled: false});
+}
+
+let get_black_video_track = ({width = 640, height = 480} = {}) => {
+  let canvas = Object.assign(document.createElement("canvas"), {width, height});
+  canvas.getContext('2d').fillRect(0, 0, width, height);
+  let stream = canvas.captureStream();
+  return stream.getVideoTracks()[0];
+}
+
+let blackSilence = (...args) => new MediaStream([black(...args), silence()]);
+
+// create peer connection
 let createPeerConnection = () => {
   console.log("================WARNING: connection reset================");
   console.log("createPeerConnection: enter createPeerConnection");
@@ -332,12 +338,12 @@ function reset() {
   //     track.stop();
   //   });
   // }
-
+  
   audioSource = audioInputSelect.value;
   console.log("in reset(): audioSource is: ", audioSource);
   videoSource = videoSelect.value;
   console.log("in reset(): videoSource is: ", videoSource);
-  
+
   console.log("in reset(): before navigator.mediaDevices.enumerateDevices()");
   navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
 }
@@ -347,6 +353,7 @@ function callConnect() {
   
   // call socket.connect() to create webrtc connection
   socket.connect();
+  socket.emit("broadcast_update", {"user_id": "QizhengZhang", "device": "desk"});
 
   // set button states
   console.log('in callConnect(): before setting button states');
@@ -511,7 +518,6 @@ function videoAndAudioOff() {
 
 async function startPeak() {
   videoAndAudioOn();
-  // await sleep(1000);
   otherSideVideoAndAudioOn();
   startPeakButton.disabled = true;
   stopPeakButton.disabled = false;
@@ -519,7 +525,6 @@ async function startPeak() {
 
 async function stopPeak() {
   videoAndAudioOff();
-  // await sleep(1000);
   otherSideVideoAndAudioOff();
   startPeakButton.disabled = false;
   stopPeakButton.disabled = true;
