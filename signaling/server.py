@@ -49,5 +49,4 @@ async def data(sid, data):
     await sio.emit('data', data, room=ROOM, skip_sid=sid)
 
 if __name__ == '__main__':
-    web.run_app(app, host="10.5.65.215", port=9999)
-    # web.run_app(app, host="10.28.68.45", port=9999)
+    web.run_app(app, host="172.27.76.160", port=9999)

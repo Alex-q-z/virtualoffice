@@ -8,8 +8,26 @@ button {
   width: 83px;
 }
 
-video {
+/* video {
   --width: 45%;
+  width: var(--width);
+  height: calc(var(--width) * 0.75);
+  margin: 0 0 20px 0;
+  vertical-align: top;
+} */
+
+#remoteStream {
+  --width: 100%;
+  --height: 100%;
+  width: var(--width);
+  height: var(--height);
+  /* height: calc(var(--width) * 0.75); */
+  margin: 0 0 20px 0;
+  vertical-align: top;
+}
+
+#localStream {
+  --width: 25%;
   width: var(--width);
   height: calc(var(--width) * 0.75);
   margin: 0 0 20px 0;
@@ -21,11 +39,11 @@ div.select {
   margin: 0 0 1em 0;
 }
 
-#videoal {
+/* #videoal {
   margin-left: 80px;
-}
+} */
 
-#videoal div.video {
+/* #videoal div.video {
   display: inline-block;
   zoom: 1;
   *display: inline;
@@ -37,4 +55,4 @@ div.select {
 #videoal div.video video {
   width: 100%;
   height: 100%;
-}
+} */

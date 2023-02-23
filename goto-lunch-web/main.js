@@ -1,6 +1,5 @@
 // Config variables: change them to point to your own servers
-const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
-// const SIGNALING_SERVER_URL = 'http://10.28.68.45:9999';
+const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
 
 // for communication that is local
 const PC_CONFIG = {};
@@ -16,7 +15,7 @@ const startPeakButton = document.getElementById('startPeakButton');
 const stopPeakButton = document.getElementById('stopPeakButton');
 const disconnectButton = document.getElementById('disconnectButton');
 
-// button initial status
+// button status
 startButton.disabled = false;
 connectButton.disabled = true;
 videoOnButton.disabled = true;
@@ -30,10 +29,10 @@ disconnectButton.disabled = true;
 // button onclick events
 startButton.onclick = start;
 connectButton.onclick = callConnect;
-videoOnButton.onclick = videoOn;
-videoOffButton.onclick = videoOff;
-audioOnButton.onclick = audioOn;
-audioOffButton.onclick = audioOff;
+videoOnButton.onclick = videoOn; // videoOnNew;
+videoOffButton.onclick = videoOff; // videoOff;
+audioOnButton.onclick = audioOn; // audioOnNew;
+audioOffButton.onclick = audioOff; // audioOff;
 startPeakButton.onclick = startPeak;
 stopPeakButton.onclick = stopPeak;
 disconnectButton.onclick = callDisconnect;
@@ -56,6 +55,7 @@ socket.on('data', (data) => {
 
 socket.on('broadcast_update', (all_users_data) => {
   console.log('socket on: broadcast_update received: ', all_users_data);
+  user_list = all_users_data;
 });
 
 socket.on('ready', () => {
@@ -85,6 +85,7 @@ let audioSender;
 
 // connection-related parameters
 let other_side_closed = false;
+let user_list;
 
 // dummy audio and dummy video tracks
 let silence = () => {
@@ -126,6 +127,15 @@ let createPeerConnection = () => {
     pc.onicecandidate = onIceCandidate;
     pc.ontrack = onTrack;
     pc.oniceconnectionstatechange = e => onIceStateChange(pc, e);
+
+    // Initialization: here we use dummy audio and video tracks before users turn on cameras/microphones
+    // let constraints = {width: 640, height: 480};
+    // // WARNING: we will begin to deprecate localStream and use localStreamElement.srcObject all the time
+    // // localStream = blackSilence(constraints);
+    // localStreamElement.srcObject = blackSilence(constraints);
+    // localStreamElement.muted = true;
+    // pc.addStream(localStreamElement.srcObject);
+
     console.log('createPeerConnection: PeerConnection created');
   } catch (error) {
     console.error('createPeerConnection: PeerConnection failed: ', error);
@@ -373,7 +383,8 @@ function videoOn() {
     let audioState = ((localStream == null || localStream.getAudioTracks()[0] == undefined) ? false : true);
     navigator.mediaDevices
         // .getUserMedia({audio: audioState, video: true})
-        .getUserMedia({audio: audioState, video: {deviceId: videoSource ? {exact: videoSource} : undefined}})
+        .getUserMedia({audio: audioState, 
+                       video: {deviceId: videoSource ? {exact: videoSource} : undefined}})
         .then(stream => {
           console.log('in videoOn(): before assigning stream to localStream');
           localStream = stream;
@@ -382,10 +393,6 @@ function videoOn() {
 
           // QZ: getTrack and addTrack so remote client can see local streams
           console.log('in videoOn(): before getTrack');
-          if (audioState) {
-            const audioTracks = stream.getAudioTracks();
-            audioSender = pc.addTrack(audioTracks[0], localStream);
-          }
           const videoTracks = stream.getVideoTracks();
           
           console.log('in videoOn(): before addTrack');
@@ -405,6 +412,52 @@ function videoOn() {
   }
 }
 
+function videoOnNew() {
+  console.log('in videoOnNew(): enter videoOn');
+  videoOnButton.disabled = true;
+  videoOffButton.disabled = false;
+
+  navigator.mediaDevices
+      .getUserMedia({audio: false,
+                     video: {deviceId: videoSource ? {exact: videoSource} : undefined}})
+      .then(stream => {
+        console.log('in videoOnNew(): before assigning stream to localStream');
+        // localStream = stream;
+        // localStreamElement.srcObject = stream;
+
+        // QZ: update track on localStreamElement.srcObject
+        // let new_video_track = stream.getTracks().find(t => t.kind == 'video');
+        // let local_video_track = localStreamElement.srcObject.getTracks().find(t => t.kind == 'video');
+        // console.log('in videoOnNew(): before removeTrack', localStreamElement.srcObject.getTracks());
+        // localStreamElement.srcObject.removeTrack(local_video_track);
+        // console.log('in videoOnNew(): after removeTrack', localStreamElement.srcObject.getTracks());
+        // localStreamElement.srcObject.addTrack(new_video_track);
+        // console.log('in videoOnNew(): after addTrack', localStreamElement.srcObject.getTracks());
+        // localStream = localStreamElement.srcObject;
+
+        localStream = stream;
+        localStreamElement.srcObject = stream;
+        console.log('in videoOnNew(): after addTrack', localStreamElement.srcObject.getTracks());
+
+        // QZ: replaceTrack on peer connection
+        return Promise.all(pc.getSenders().map(sender =>
+          (sender.track && sender.track.kind == 'video') ? sender.replaceTrack(stream.getTracks().find(t => t.kind == sender.track.kind), stream) : sender));
+        // for (var sender in pc.getSenders()) {
+        //   if (sender.track && sender.track.kind == 'video') {
+        //     console.log("OK, the sender is", sender);
+        //     sender.replaceTrack(stream.getTracks().find(t => t.kind == 'video'));
+        //   }
+        // }
+        // let sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+        // console.log("OK, the sender is", sender);
+        // console.log("OK, the new track is", stream.getTracks().find(t => t.kind == 'video'));
+        // sender.replaceTrack(stream.getTracks().find(t => t.kind == 'video'));
+      })
+      .catch(error => {
+        console.error('in videoOnNew(): we met an error: ', error);
+      });
+}
+
 function audioOn() {
   console.log('in audioOn(): enter audioOn');
   audioOnButton.disabled = true;
@@ -414,7 +467,8 @@ function audioOn() {
     let videoState = ((localStream == null || localStream.getVideoTracks()[0] == undefined) ? false : true);
     navigator.mediaDevices
         // .getUserMedia({audio: true, video: videoState})
-        .getUserMedia({audio: {deviceId: audioSource ? {exact: audioSource} : undefined}, video: videoState})
+        .getUserMedia({audio: {deviceId: audioSource ? {exact: audioSource} : undefined}, 
+                       video: videoState})
         .then(stream => {
           console.log('in audioOn(): before assigning stream to localStream');
           localStream = stream;
@@ -423,10 +477,6 @@ function audioOn() {
 
           // QZ: getTrack and addTrack so remote client can see local streams
           console.log('in audioOn(): before getTrack');
-          if (videoState) {
-            const videoTracks = stream.getVideoTracks();
-            videoSender = pc.addTrack(videoTracks[0], localStream);
-          }
           const audioTracks = stream.getAudioTracks();
 
           console.log('in audioOn(): before addTrack');
@@ -446,6 +496,29 @@ function audioOn() {
   }
 }
 
+function audioOnNew() {
+  console.log('in audioOnNew(): enter videoOn');
+  audioOnButton.disabled = true;
+  audioOffButton.disabled = false;
+
+  navigator.mediaDevices
+      .getUserMedia({audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+                     video: false})
+      .then(stream => {
+        console.log('in audioOnNew(): before assigning stream to localStream');
+        localStream = stream;
+        localStreamElement.srcObject = stream;
+        localStreamElement.muted = true;
+
+        // QZ: replaceTrack (video track only)
+        return Promise.all(pc.getSenders().map(sender =>
+          sender.replaceTrack(stream.getTracks().find(t => t.kind == sender.track.kind), stream)));
+      })
+      .catch(error => {
+        console.error('in audioOnNew(): we met an error: ', error);
+      });
+}
+
 function videoOff() {
   console.log('in videoOff(): enter videoOff');
   videoOnButton.disabled = false;
@@ -454,6 +527,26 @@ function videoOff() {
   videoTrack.enabled = !videoTrack.enabled;
 }
 
+// function videoOffNew() {
+//   console.log('in videoOffNew(): enter videoOff');
+//   videoOnButton.disabled = false;
+//   videoOffButton.disabled = true;
+  
+//   let constraints = {width: 640, height: 480};
+//   let dummyStream = blackSilence(constraints);
+//   // localStream = dummyStream;
+//   // localStreamElement.srcObject = dummyStream;
+
+
+//   localStream = stream;
+//   localStreamElement.srcObject = stream;
+//   localStreamElement.muted = true;
+
+//   // QZ: replaceTrack (video track only)
+//   return Promise.all(pc.getSenders().map(sender =>
+//     sender.replaceTrack(stream.getTracks().find(t => t.kind == sender.track.kind), stream)));
+// }
+
 function audioOff() {
   console.log('in audioOff(): enter audioOff');
   audioOnButton.disabled = false;
@@ -461,6 +554,14 @@ function audioOff() {
   let audioTrack = localStream.getAudioTracks()[0];
   audioTrack.enabled = !audioTrack.enabled;
 }
+
+// function audioOffNew() {
+//   console.log('in audioOffNew(): enter audioOff');
+//   audioOnButton.disabled = false;
+//   audioOffButton.disabled = true;
+  
+
+// }
 
 function videoAndAudioOn() {
   console.log('in videoAndAudioOn(): enter videoAndAudioOn');
