@@ -10,7 +10,7 @@ const USER_INFO = {"user_id": USER_ID, "device": DEVICE};
 const PC_CONFIG = {};
 
 // button-associated HTML elements
-const startButton = document.getElementById('startButton');
+// const startButton = document.getElementById('startButton');
 const connectButton = document.getElementById('connectButton');
 const videoOnButton = document.getElementById('videoOnButton');
 const videoOffButton = document.getElementById('videoOffButton');
@@ -21,7 +21,7 @@ const stopPeakButton = document.getElementById('stopPeakButton');
 const disconnectButton = document.getElementById('disconnectButton');
 
 // button status
-startButton.disabled = false;
+// startButton.disabled = false;
 connectButton.disabled = true;
 videoOnButton.disabled = true;
 videoOffButton.disabled = true;
@@ -32,8 +32,8 @@ stopPeakButton.disabled = true;
 disconnectButton.disabled = true;
 
 // button onclick events
-startButton.onclick = start;
-connectButton.onclick = callConnect;
+// startButton.onclick = start;
+connectButton.onclick = serverConnect; // callConnect;
 videoOnButton.onclick = videoOn; // videoOnNew;
 videoOffButton.onclick = videoOff; // videoOff;
 audioOnButton.onclick = audioOn; // audioOnNew;
@@ -64,7 +64,7 @@ socket.on('broadcast_connection_update', (all_users_data) => {
   console.log('socket on: broadcast_connection_update received: ', all_users_data);
   active_users = all_users_data;
   // change the dynamic list that shows the list of online users
-  // updateActiveUsers();
+  updateActiveUsers();
 });
 
 socket.on('ready', () => {
@@ -337,12 +337,12 @@ function updateActiveUsers() {
   activeUsersSelect.innerHTML = '';
 
   // Add an option element for each user in the active_users dictionary
-  for (const [userId, userName] of Object.entries(active_users)) {
+  active_users.forEach(function(user) {
     const optionElement = document.createElement('option');
-    optionElement.value = userId;
-    optionElement.textContent = userName;
+    optionElement.value = user.sid;
+    optionElement.text = user.user_id + " (" + user.device + ")";
     activeUsersSelect.appendChild(optionElement);
-  }
+  });
 }
 
 function gotStream(stream) {
@@ -357,7 +357,7 @@ function handleError(error) {
 }
 
 function start() {
-  startButton.disabled = true;
+  // startButton.disabled = true;
   connectButton.disabled = false;
   reset();
 }
@@ -378,6 +378,14 @@ function reset() {
 
   console.log("in reset(): before navigator.mediaDevices.enumerateDevices()");
   navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+}
+
+function serverConnect() {
+  console.log('in serverConnect(): before we make a web socket connection with the signaling server');
+  socket.connect();
+  socket.emit("new_user_connect_to_server", USER_INFO);
+  console.log('in serverConnect(): after we called socket.connect()');
+  connectButton.disabled = true;
 }
 
 function callConnect() {
@@ -694,6 +702,7 @@ async function callDisconnect() {
 
 // Start connection
 console.log("main: starting everything");
+start();
 
 videoSelect.onchange = reset;
 audioInputSelect.onchange = reset;
