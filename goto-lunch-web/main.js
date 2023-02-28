@@ -64,7 +64,7 @@ socket.on('broadcast_connection_update', (all_users_data) => {
   console.log('socket on: broadcast_connection_update received: ', all_users_data);
   active_users = all_users_data;
   // change the dynamic list that shows the list of online users
-  // updateActiveUsers();
+  updateActiveUsers();
 });
 
 socket.on('ready', () => {
@@ -337,12 +337,12 @@ function updateActiveUsers() {
   activeUsersSelect.innerHTML = '';
 
   // Add an option element for each user in the active_users dictionary
-  for (const [userId, userName] of Object.entries(active_users)) {
+  active_users.forEach(function(user) {
     const optionElement = document.createElement('option');
-    optionElement.value = userId;
-    optionElement.textContent = userName;
+    optionElement.value = user.sid;
+    optionElement.text = user.user_id + " (" + user.device + ")";
     activeUsersSelect.appendChild(optionElement);
-  }
+  });
 }
 
 function gotStream(stream) {

@@ -36,8 +36,10 @@ async def new_user_connect_to_call(sid, user_info):
 
 @sio.event
 async def disconnect(sid):
+    # leave the main room
     sio.leave_room(sid, ROOM)
     print('Disconnected', sid)
+    
     # 1. update user_list (stored at server side)
     # 1. broadcast latest user_list to everyone in the room
     remove_user_from_list(room=ROOM, sid=sid)
