@@ -572,7 +572,8 @@ function videoAndAudioOn() {
 
   if (localStream == null) {
     navigator.mediaDevices
-        .getUserMedia({audio: true, video: true})
+        .getUserMedia({audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+                       video: {deviceId: videoSource ? {exact: videoSource} : undefined}})
         .then(stream => {
           console.log('in videoAndAudioOn(): before assigning stream to localStream');
           localStream = stream;
