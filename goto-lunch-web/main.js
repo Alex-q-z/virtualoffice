@@ -1,5 +1,10 @@
-// Config variables: change them to point to your own servers
+// IP and port number of the signaling server
 const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
+
+// user id and device information
+const USER_ID = "Qizheng Zhang";
+const DEVICE = "laptop";
+const USER_INFO = {"user_id": USER_ID, "device": DEVICE};
 
 // for communication that is local
 const PC_CONFIG = {};
@@ -44,6 +49,8 @@ const selectors = [videoSelect, audioInputSelect];
 let videoSource = null;
 let audioSource = null;
 
+const activeUsersSelect = document.querySelector('select#activeUsers');
+
 // signaling method
 let socket = io(SIGNALING_SERVER_URL, { autoConnect: false });
 
@@ -53,9 +60,11 @@ socket.on('data', (data) => {
   handleSignalingData(data);
 });
 
-socket.on('broadcast_update', (all_users_data) => {
-  console.log('socket on: broadcast_update received: ', all_users_data);
-  user_list = all_users_data;
+socket.on('broadcast_connection_update', (all_users_data) => {
+  console.log('socket on: broadcast_connection_update received: ', all_users_data);
+  active_users = all_users_data;
+  // change the dynamic list that shows the list of online users
+  // updateActiveUsers();
 });
 
 socket.on('ready', () => {
@@ -85,7 +94,7 @@ let audioSender;
 
 // connection-related parameters
 let other_side_closed = false;
-let user_list;
+let active_users;
 
 // dummy audio and dummy video tracks
 let silence = () => {
@@ -323,6 +332,19 @@ function gotDevices(deviceInfos) {
   });
 }
 
+function updateActiveUsers() {
+  // Clear all existing options from the select element
+  activeUsersSelect.innerHTML = '';
+
+  // Add an option element for each user in the active_users dictionary
+  for (const [userId, userName] of Object.entries(active_users)) {
+    const optionElement = document.createElement('option');
+    optionElement.value = userId;
+    optionElement.textContent = userName;
+    activeUsersSelect.appendChild(optionElement);
+  }
+}
+
 function gotStream(stream) {
   // window.stream = stream; // make stream available to console
   // localStreamElement.srcObject = stream;
@@ -363,7 +385,7 @@ function callConnect() {
   
   // call socket.connect() to create webrtc connection
   socket.connect();
-  socket.emit("broadcast_update", {"user_id": "QizhengZhang", "device": "desk"});
+  socket.emit("new_user_connect_to_call", USER_INFO);
 
   // set button states
   console.log('in callConnect(): before setting button states');
@@ -675,3 +697,4 @@ console.log("main: starting everything");
 
 videoSelect.onchange = reset;
 audioInputSelect.onchange = reset;
+// activeUsers.onchange = ;

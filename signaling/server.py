@@ -23,7 +23,7 @@ def connect(sid, environ):
     print('Connected', sid)
 
 @sio.event
-async def broadcast_update(sid, user_info):
+async def new_user_connect_to_call(sid, user_info):
     print('New user info', user_info)
     user_info["sid"] = sid
     await sio.emit('ready', room=ROOM, skip_sid=sid)
@@ -32,7 +32,7 @@ async def broadcast_update(sid, user_info):
     # 1. update user_list (stored at server side)
     # 1. broadcast latest user_list to everyone in the room
     add_user_to_list(room=ROOM, user_info=user_info)
-    await sio.emit('broadcast_update', user_list[ROOM], room=ROOM)
+    await sio.emit('broadcast_connection_update', user_list[ROOM], room=ROOM)
 
 @sio.event
 async def disconnect(sid):
@@ -41,7 +41,7 @@ async def disconnect(sid):
     # 1. update user_list (stored at server side)
     # 1. broadcast latest user_list to everyone in the room
     remove_user_from_list(room=ROOM, sid=sid)
-    await sio.emit('broadcast_update', user_list[ROOM], room=ROOM)
+    await sio.emit('broadcast_connection_update', user_list[ROOM], room=ROOM)
 
 @sio.event
 async def data(sid, data):
