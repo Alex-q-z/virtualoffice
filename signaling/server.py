@@ -2,6 +2,10 @@ from aiohttp import web
 import socketio
 from collections import defaultdict
 
+import logging
+import time
+logging.basicConfig(filename='sig_server.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 LOBBY = 'lobby'
 rooms_and_user_info = defaultdict(dict)
 # an example
@@ -64,6 +68,7 @@ def connect(sid, environ):
 @sio.event
 async def new_user_connect_to_server(sid, user_info):
     print('New user info', user_info)
+    logging.info(f"User connects to the server: {user_info}")
     sid_and_user_info[sid] = user_info
     # await sio.emit('ready', room=LOBBY, skip_sid=sid)
     # enter the main lobby
@@ -87,7 +92,10 @@ async def new_user_connect_to_call(sid, user_info):
 @sio.event
 async def webrtc_connect_request(sid, other_user_sid):
     assert if_user_in_room(LOBBY, other_user_sid)
-    print(f"WebRTC connect request from {sid} to {other_user_sid}")
+    user_1 = rooms_and_user_info[sid]["user_id"]
+    user_2 = rooms_and_user_info[other_user_sid]["user_id"]
+    print(f"WebRTC connect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
+    logging.info(f"WebRTC connect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
     private_chat_room_name = sid + "_" + other_user_sid
 
     # add both sides to the private chat room
@@ -103,7 +111,10 @@ async def webrtc_connect_request(sid, other_user_sid):
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):
     private_chat_room_name = sid + "_" + other_user_sid
+    user_1 = rooms_and_user_info[sid]["user_id"]
+    user_2 = rooms_and_user_info[other_user_sid]["user_id"]
     print(f"WebRTC disconnect request from {sid} to {other_user_sid}")
+    logging.info(f"WebRTC disconnect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
     # broadcast the other side for further actions
     await sio.emit('webrtc_disconnect', room=private_chat_room_name, skip_sid=sid)
     # remove the private chatroom, and update the server-side user info cache
@@ -118,6 +129,7 @@ async def disconnect(sid):
     # leave the main room
     sio.leave_room(sid, LOBBY)
     print('Disconnected', sid)
+    logging.info(f"User disconnects from the server: {sid_and_user_info[sid]}")
     
     # 1. update rooms_and_user_info (stored at server side)
     # 1. broadcast latest rooms_and_user_info to everyone in the room
@@ -136,8 +148,10 @@ async def global_data(sid, data):
 
 @sio.event
 async def local_data(sid, data):
-    print('Local data from {}: {}'.format(sid, data["type"]))
     private_chat_room = sid_and_user_info[sid]["current_chat_room"]
+    user_data_sender = rooms_and_user_info[sid]["user_id"]
+    print('Local data from {}: {}'.format(sid, data["type"]))
+    logging.info("Local data from <{}/{}> to {}: {}".format(user_data_sender, sid, private_chat_room, data["type"]))
     await sio.emit('data', data, room=private_chat_room, skip_sid=sid)
 
 if __name__ == '__main__':
