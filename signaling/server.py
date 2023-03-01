@@ -103,6 +103,7 @@ async def webrtc_connect_request(sid, other_user_sid):
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):
     private_chat_room_name = sid + "_" + other_user_sid
+    print(f"WebRTC disconnect request from {sid} to {other_user_sid}")
     # broadcast the other side for further actions
     await sio.emit('webrtc_disconnect', room=private_chat_room_name, skip_sid=sid)
     # remove the private chatroom, and update the server-side user info cache
@@ -135,7 +136,7 @@ async def global_data(sid, data):
 
 @sio.event
 async def local_data(sid, data):
-    print('Local data from {}: {}'.format(sid, data))
+    print('Local data from {}: {}'.format(sid, data["type"]))
     private_chat_room = sid_and_user_info[sid]["current_chat_room"]
     await sio.emit('data', data, room=private_chat_room, skip_sid=sid)
 

@@ -73,6 +73,16 @@ socket.on('broadcast_connection_update', (all_users_data) => {
   updateActiveUsers();
 });
 
+socket.on('webrtc_disconnect', (data) => {
+  console.log('socket on: webrtc_disconnect');
+  webrtcClose();
+  // set button states
+  connectButton.disabled = false;
+  disconnectButton.disabled = true;
+  startPeakButton.disabled = true;
+  stopPeakButton.disabled = true;
+});
+
 socket.on('ready', () => {
   console.log('socket on: Ready');
   // Connection with signaling server is ready, and so is local stream
@@ -190,11 +200,6 @@ let sendAnswer = () => {
     setAndSendLocalDescription,
     (error) => { console.error('sendAnswer: send answer failed: ', error); }
   );
-  // QZ: this assumes that the connection will be established right after we send the answer
-  // which might not be true in some cases especially when the network latency is very large
-  connectButton.disabled = true;
-  disconnectButton.disabled = false;
-  startPeakButton.disabled = false;
 };
 
 let setAndSendLocalDescription = (sessionDescription) => {
@@ -275,6 +280,10 @@ let handleSignalingData = (data) => {
       if (pc == null) {
         console.log("handleSignalingData offer: pc is undefined");
         createPeerConnection();
+        // QZ: this might not be the best place
+        connectButton.disabled = true;
+        disconnectButton.disabled = false;
+        startPeakButton.disabled = false;
       }
       else {
         console.log("handleSignalingData offer: signalingState is %s", pc.signalingState);
@@ -316,14 +325,6 @@ let handleSignalingData = (data) => {
     case 'video_and_audio_off':
       videoAndAudioOff();
       startPeakButton.disabled = false;
-      stopPeakButton.disabled = true;
-      break;
-    case 'webrtc_disconnect':
-      webrtcClose();
-      // set button states
-      connectButton.disabled = false;
-      disconnectButton.disabled = true;
-      startPeakButton.disabled = true;
       stopPeakButton.disabled = true;
       break;
   }
