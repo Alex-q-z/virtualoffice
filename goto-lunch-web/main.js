@@ -363,9 +363,11 @@ function updateActiveUsers() {
     activeUsersSelect.appendChild(optionElement);
   });
 
-  if (selectedUser == null && active_users != null && active_users.length > 0) {
-    selectedUser = active_users[0].sid;
-    startPeakButton.disabled = false;
+  if (selectedUser == null && 
+      active_users.filter(user => user.user_id != USER_ID) != null && 
+      active_users.filter(user => user.user_id != USER_ID).length > 0) {
+    selectedUser = active_users.filter(user => user.user_id != USER_ID)[0].sid;
+    connectButton.disabled = false;
   }
 }
 
@@ -451,14 +453,16 @@ function webrtcConnect() {
   // send a webrtc connect request to the server
   // this will put us and the other user in the same chat room
   socket.emit("webrtc_connect_request", selectedUser);
-
+  connectButton.disabled = true;
+  disconnectButton.disabled = false;
 }
 
 function webrtcDisconnect() {
   // send a webrtc disconnect request to the server
   // this will end the webrtc connection we have with the selected user
   // socket.emit("webrtc_disconnect_request", selectedUser);
-
+  connectButton.disabled = false;
+  disconnectButton.disabled = true;
 }
 
 function callConnect() {

@@ -69,6 +69,7 @@ async def new_user_connect_to_call(sid, user_info):
 @sio.event
 async def webrtc_connect_request(sid, other_user_sid):
     assert if_user_in_room(LOBBY, other_user_sid)
+    print(f"WebRTC connect request from {sid} to {other_user_sid}")
     private_chat_room_name = sid + "_" + other_user_sid
 
     # add both sides to the private chat room
@@ -98,21 +99,15 @@ async def disconnect(sid):
 #     await sio.emit('data', data, room=LOBBY, skip_sid=sid)
 
 @sio.event
-async def data(sid, data):
-    # print('Message from {}: {}'.format(sid, data))
-    private_chat_room = sid_and_user_info[sid]["current_chat_room"]
-    await sio.emit('data', data, room=private_chat_room, skip_sid=sid)
-
-@sio.event
 async def global_data(sid, data):
     # print('Message from {}: {}'.format(sid, data))
     await sio.emit('data', data, room=LOBBY, skip_sid=sid)
 
-# @sio.event
-# async def local_data(sid, data):
-#     # print('Message from {}: {}'.format(sid, data))
-#     private_chat_room = sid_and_user_info[sid]["current_chat_room"]
-#     await sio.emit('data', data, room=private_chat_room, skip_sid=sid)
+@sio.event
+async def local_data(sid, data):
+    print('Local data from {}: {}'.format(sid, data))
+    private_chat_room = sid_and_user_info[sid]["current_chat_room"]
+    await sio.emit('data', data, room=private_chat_room, skip_sid=sid)
 
 if __name__ == '__main__':
     web.run_app(app, host="10.5.65.215", port=9999)
