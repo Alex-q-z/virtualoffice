@@ -43,8 +43,8 @@ connectButton.onclick = webrtcConnect; // serverConnect; // callConnect;
 // videoOffButton.onclick = videoOff; // videoOff;
 // audioOnButton.onclick = audioOn; // audioOnNew;
 // audioOffButton.onclick = audioOff; // audioOff;
-startPeakButton.onclick = startPeakSelectedUser; // startPeak;
-stopPeakButton.onclick = stopPeakSelectedUser; // stopPeak;
+startPeakButton.onclick = startPeak; // startPeak;
+stopPeakButton.onclick = stopPeak; // stopPeak;
 disconnectButton.onclick = webrtcDisconnect; // serverDisconnect; // callDisconnect;
 logoffButton.onclick = serverDisconnect;
 
@@ -190,6 +190,11 @@ let sendAnswer = () => {
     setAndSendLocalDescription,
     (error) => { console.error('sendAnswer: send answer failed: ', error); }
   );
+  // QZ: this assumes that the connection will be established right after we send the answer
+  // which might not be true in some cases especially when the network latency is very large
+  connectButton.disabled = true;
+  disconnectButton.disabled = false;
+  startPeakButton.disabled = false;
 };
 
 let setAndSendLocalDescription = (sessionDescription) => {
@@ -455,6 +460,9 @@ function webrtcConnect() {
   socket.emit("webrtc_connect_request", selectedUser);
   connectButton.disabled = true;
   disconnectButton.disabled = false;
+
+  // QZ: there might be race condition, ignore for now
+  startPeakButton.disabled = false;
 }
 
 function webrtcDisconnect() {
@@ -463,6 +471,8 @@ function webrtcDisconnect() {
   // socket.emit("webrtc_disconnect_request", selectedUser);
   connectButton.disabled = false;
   disconnectButton.disabled = true;
+  startPeakButton.disabled = true;
+  stopPeakButton.disabled = true;
 }
 
 function callConnect() {
@@ -671,10 +681,10 @@ function audioOff() {
 
 function videoAndAudioOn() {
   console.log('in videoAndAudioOn(): enter videoAndAudioOn');
-  videoOnButton.disabled = true;
-  videoOffButton.disabled = false;
-  audioOnButton.disabled = true;
-  audioOffButton.disabled = false;
+  // videoOnButton.disabled = true;
+  // videoOffButton.disabled = false;
+  // audioOnButton.disabled = true;
+  // audioOffButton.disabled = false;
 
   if (localStream == null) {
     navigator.mediaDevices
@@ -713,10 +723,10 @@ function videoAndAudioOn() {
 
 function videoAndAudioOff() {
   console.log('in videoAndAudioOff(): enter videoAndAudioOff');
-  videoOnButton.disabled = false;
-  videoOffButton.disabled = true;
-  audioOnButton.disabled = false;
-  audioOffButton.disabled = true;
+  // videoOnButton.disabled = false;
+  // videoOffButton.disabled = true;
+  // audioOnButton.disabled = false;
+  // audioOffButton.disabled = true;
 
   let videoTrack = localStream.getVideoTracks()[0];
   let audioTrack = localStream.getAudioTracks()[0];
@@ -731,21 +741,9 @@ async function startPeak() {
   stopPeakButton.disabled = false;
 }
 
-async function startPeakSelectedUser() {
-  
-  startPeakButton.disabled = true;
-  stopPeakButton.disabled = false;
-}
-
 async function stopPeak() {
   videoAndAudioOff();
   otherSideVideoAndAudioOff();
-  startPeakButton.disabled = false;
-  stopPeakButton.disabled = true;
-}
-
-async function stopPeakSelectedUser() {
-  
   startPeakButton.disabled = false;
   stopPeakButton.disabled = true;
 }
