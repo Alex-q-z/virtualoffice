@@ -3,38 +3,59 @@ import socketio
 from collections import defaultdict
 
 LOBBY = 'lobby'
-rooms_and_user_info = defaultdict(list)
+rooms_and_user_info = defaultdict(dict)
 # an example
 # rooms_and_user_info = {
-#     "lobby": [{"user_id": "Qizheng Zhang", "device": "laptop", "sid": "XXXXXXXX"},
-#               {"user_id": "James Hong", "device": "laptop", "sid": "YYYYYYYY"},
-#               {"user_id": "Kayvon Fatahalian", "device": "door", "sid": "ZZZZZZZ"}],
-#     "gates_3b_381": [{"user_id": "Qizheng Zhang", "device": "laptop", "sid": "XXXXXXXX"},
-#                      {"user_id": "James Hong", "device": "laptop", "sid": "YYYYYYYY"}],
+#     "lobby": {SIDQZ: {"user_id": "Qizheng Zhang", "device": "laptop", "availability": "busy"},
+#               SIDJH: {"user_id": "James Hong", "device": "laptop", "availability": "busy"},
+#               SIDKF: {"user_id": "Kayvon Fatahalian", "device": "door", "availability": "free"}},
+#     "gates_3b_381": {SIDQZ: {"user_id": "Qizheng Zhang", "device": "laptop", "availability": "busy"},
+#                      SIDJH: {"user_id": "James Hong", "device": "laptop", "availability": "busy"}},
 # }
-sid_and_user_info = {}
+sid_and_user_info = defaultdict(dict)
+# an example
+# sid_and_user_info = {
+#     SIDQZ: {"user_id": "Qizheng Zhang", "device": "laptop", "availability": "busy", "current_chat_room": "gates_3b_381"}
+# }
 
 sio = socketio.AsyncServer(cors_allowed_origins='*', ping_timeout=35)
 app = web.Application()
 sio.attach(app)
 
-def add_user_to_room(room, user_info):
+def add_user_to_room(room, sid, user_info):
     if room != LOBBY:
         user_info["availability"] = "busy"
-        sid_and_user_info[user_info["sid"]]["current_chat_room"] = room
-    rooms_and_user_info[room].append(user_info)
+    else:
+        user_info["availability"] = "free"
+        sid_and_user_info[sid] = user_info
+    # add user information to rooms_and_user_info
+    sid_and_user_info[sid]["current_chat_room"] = room
+    rooms_and_user_info[room][sid] = user_info
 
 def remove_user_from_room(room, sid):
-    if not sid in [user_info["sid"] for user_info in rooms_and_user_info[room]]:
+    # if user is not in the given room, return
+    if not sid in rooms_and_user_info[room].keys():
         return
-    for k in range(len(rooms_and_user_info[room])):
-        if rooms_and_user_info[room][k]["sid"] == sid:
-            rooms_and_user_info[room].remove(rooms_and_user_info[room][k])
-            break
+    
+    if room != LOBBY:
+        # set availability in rooms_and_user_info when they are removed from a private chat room
+        rooms_and_user_info[LOBBY][sid]["availability"] = "free"
+        # set current_chat_room in sid_and_user_info when they are removed from a private chat room
+        sid_and_user_info[sid]["availability"] = "free"
+        sid_and_user_info[sid]["current_chat_room"] = LOBBY
+    else:
+        sid_and_user_info.pop(sid)
+    
+    # remove user from the room in rooms_and_user_info
+    rooms_and_user_info[room].pop(sid)
+
+def close_room(room):
+    assert room != LOBBY
+    assert room in rooms_and_user_info.keys()
+    rooms_and_user_info.pop(room)
 
 def if_user_in_room(room, sid):
-    all_user_sid_in_room = [user_info["sid"] for user_info in rooms_and_user_info[room]]
-    return sid in all_user_sid_in_room
+    return sid in rooms_and_user_info[room].keys()
 
 @sio.event
 def connect(sid, environ):
@@ -43,27 +64,24 @@ def connect(sid, environ):
 @sio.event
 async def new_user_connect_to_server(sid, user_info):
     print('New user info', user_info)
-    user_info["sid"] = sid
-    user_info["availability"] = "free"
     sid_and_user_info[sid] = user_info
     # await sio.emit('ready', room=LOBBY, skip_sid=sid)
     # enter the main lobby
     sio.enter_room(sid, LOBBY)
     # 1. update rooms_and_user_info (stored at server side)
     # 1. broadcast latest rooms_and_user_info to everyone in the room
-    add_user_to_room(room=LOBBY, user_info=user_info)
+    add_user_to_room(LOBBY, sid, user_info)
     await sio.emit('broadcast_connection_update', rooms_and_user_info[LOBBY], room=LOBBY)
 
 @sio.event
 async def new_user_connect_to_call(sid, user_info):
     print('New user info', user_info)
-    user_info["sid"] = sid
     await sio.emit('ready', room=LOBBY, skip_sid=sid)
     # enter the chat room
     sio.enter_room(sid, LOBBY)
     # 1. update rooms_and_user_info (stored at server side)
     # 1. broadcast latest rooms_and_user_info to everyone in the room
-    add_user_to_room(room=LOBBY, user_info=user_info)
+    add_user_to_room(LOBBY, sid, user_info)
     await sio.emit('broadcast_connection_update', rooms_and_user_info[LOBBY], room=LOBBY)
 
 @sio.event
@@ -75,12 +93,24 @@ async def webrtc_connect_request(sid, other_user_sid):
     # add both sides to the private chat room
     sio.enter_room(sid, private_chat_room_name)
     sio.enter_room(other_user_sid, private_chat_room_name)
-    add_user_to_room(room=private_chat_room_name, user_info=sid_and_user_info[sid])
-    add_user_to_room(room=private_chat_room_name, user_info=sid_and_user_info[other_user_sid])
+    add_user_to_room(private_chat_room_name, sid, sid_and_user_info[sid])
+    add_user_to_room(private_chat_room_name, other_user_sid, sid_and_user_info[other_user_sid])
 
-    # broadcast both sides for further actions
+    # broadcast the other side for further actions
     # WARNING: this would trigger the call initiator to send a webrtc offer
     await sio.emit('ready', room=private_chat_room_name, skip_sid=other_user_sid)
+
+@sio.event
+async def webrtc_disconnect_request(sid, other_user_sid):
+    private_chat_room_name = sid + "_" + other_user_sid
+    # broadcast the other side for further actions
+    await sio.emit('webrtc_disconnect', room=private_chat_room_name, skip_sid=sid)
+    # remove the private chatroom, and update the server-side user info cache
+    remove_user_from_room(private_chat_room_name, sid)
+    remove_user_from_room(private_chat_room_name, other_user_sid)
+    sio.leave_room(sid, private_chat_room_name)
+    sio.leave_room(other_user_sid, private_chat_room_name)
+    close_room(private_chat_room_name)
 
 @sio.event
 async def disconnect(sid):
