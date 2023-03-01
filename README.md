@@ -1,6 +1,6 @@
 # Virtual Office Project
 
-This repository serves as the codebase for the virtual office project. Currently, this demo works for two computers on a local network, e.g. Stanford CS, and assumes that each client in the chat has two available cameras.
+This repository serves as the codebase for the virtual office project. Currently, the system works on any device that has a private IP address on the Stanford campus network, and we expect that the signaling server would be able to host ~50 people at the same time at its maximum.
 
 ## Get started
 
@@ -14,9 +14,11 @@ chrome://flags/#unsafely-treat-insecure-origin-as-secure
 
 Enable the `Insecure origins treated as secure` section and enter `http://localhost:6001`.
 
-For Firefix, type `about:config` and set the values of `media.devices.insecure.enabled` and `media.getusermedia.insecure.enabled` to be `true`
+For Firefix, type `about:config` and set the values of `media.devices.insecure.enabled` and `media.getusermedia.insecure.enabled` to be `true`.
 
 ### Signaling server
+
+**NOTE: Qizheng is hosting and maintaining the signaling server now, so you can skip this step.**
 
 The signaling server is built with aiohttp and socketio. Run the following commands to install the required libraries first.
 
@@ -31,7 +33,7 @@ A websocket server will be hosted at the IP address and at the port number indic
 ### Web chat window
 
 ```
-cd web
+cd goto-lunch-web
 python -m http.server 6001
 ```
 
@@ -39,7 +41,7 @@ A web chat window will be started and hosted at `localhost:6001`. Feel free to c
 
 ### To-dos
 
-As the next steps, we plan to make this demo work for computers on different networks, and to support more clients and more cameras in the chat.
+As the next steps, we plan to make this demo work for computers on different networks.
 
 ## Reference
 
