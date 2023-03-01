@@ -1,5 +1,5 @@
 // IP and port number of the signaling server
-const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
+const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
 
 // user id and device information
 const USER_ID = "Qizheng Zhang";
