@@ -1,11 +1,6 @@
 // IP and port number of the signaling server
 const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
 
-// user id and device information
-const USER_ID = "Qizheng Zhang";
-const DEVICE = "laptop";
-const USER_INFO = {"user_id": USER_ID, "device": DEVICE};
-
 // for communication that is local
 const PC_CONFIG = {};
 
