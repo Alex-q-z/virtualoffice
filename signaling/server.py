@@ -92,8 +92,8 @@ async def new_user_connect_to_call(sid, user_info):
 @sio.event
 async def webrtc_connect_request(sid, other_user_sid):
     assert if_user_in_room(LOBBY, other_user_sid)
-    user_1 = rooms_and_user_info[sid]["user_id"]
-    user_2 = rooms_and_user_info[other_user_sid]["user_id"]
+    user_1 = sid_and_user_info[sid]["user_id"]
+    user_2 = sid_and_user_info[other_user_sid]["user_id"]
     print(f"WebRTC connect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
     logging.info(f"WebRTC connect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
     private_chat_room_name = sid + "_" + other_user_sid
@@ -111,8 +111,8 @@ async def webrtc_connect_request(sid, other_user_sid):
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):
     private_chat_room_name = sid + "_" + other_user_sid
-    user_1 = rooms_and_user_info[sid]["user_id"]
-    user_2 = rooms_and_user_info[other_user_sid]["user_id"]
+    user_1 = sid_and_user_info[sid]["user_id"]
+    user_2 = sid_and_user_info[other_user_sid]["user_id"]
     print(f"WebRTC disconnect request from {sid} to {other_user_sid}")
     logging.info(f"WebRTC disconnect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
     # broadcast the other side for further actions
@@ -149,7 +149,7 @@ async def global_data(sid, data):
 @sio.event
 async def local_data(sid, data):
     private_chat_room = sid_and_user_info[sid]["current_chat_room"]
-    user_data_sender = rooms_and_user_info[sid]["user_id"]
+    user_data_sender = sid_and_user_info[sid]["user_id"]
     print('Local data from {}: {}'.format(sid, data["type"]))
     logging.info("Local data from <{}/{}> to {}: {}".format(user_data_sender, sid, private_chat_room, data["type"]))
     await sio.emit('data', data, room=private_chat_room, skip_sid=sid)
