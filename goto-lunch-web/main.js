@@ -1,5 +1,5 @@
 // IP and port number of the signaling server
-const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
+const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 
 // for communication that is local
 const PC_CONFIG = {};
@@ -33,13 +33,13 @@ logoffButton.disabled = true;
 // button onclick events
 // startButton.onclick = start;
 loginButton.onclick = serverConnect; // callConnect;
-connectButton.onclick = webrtcConnect; // serverConnect; // callConnect;
+connectButton.onclick = doNothing; // webrtcConnect; // serverConnect; // callConnect;
 // videoOnButton.onclick = videoOn; // videoOnNew;
 // videoOffButton.onclick = videoOff; // videoOff;
 // audioOnButton.onclick = audioOn; // audioOnNew;
 // audioOffButton.onclick = audioOff; // audioOff;
-startPeakButton.onclick = startPeak; // startPeak;
-stopPeakButton.onclick = stopPeak; // stopPeak;
+startPeakButton.onclick = webrtcConnectAndStartPeak; // startPeak; // startPeak;
+stopPeakButton.onclick = webrtcDisconnectAndStopPeak; // stopPeak; // stopPeak;
 disconnectButton.onclick = webrtcDisconnect; // serverDisconnect; // callDisconnect;
 logoffButton.onclick = serverDisconnect;
 
@@ -83,6 +83,16 @@ socket.on('ready', () => {
   // Connection with signaling server is ready, and so is local stream
   console.log('socket on: before createPeerConnection');
   createPeerConnection();
+  console.log('socket on: after createPeerConnection, before sendOffer');
+  sendOffer();
+  socketReady = true;
+});
+
+socket.on('peak_ready', () => {
+  console.log('socket on: Ready');
+  // Connection with signaling server is ready, and so is local stream
+  console.log('socket on: before createPeerConnection');
+  createPeerConnection(video_audio_on = true);
   console.log('socket on: after createPeerConnection, before sendOffer');
   sendOffer();
   socketReady = true;
@@ -152,7 +162,7 @@ let get_black_video_track = ({width = 640, height = 480} = {}) => {
 let blackSilence = (...args) => new MediaStream([black(...args), silence()]);
 
 // create peer connection
-let createPeerConnection = () => {
+function createPeerConnection(video_audio_on = false) {
   console.log("================WARNING: connection reset================");
   console.log("createPeerConnection: enter createPeerConnection");
   try {
@@ -160,6 +170,35 @@ let createPeerConnection = () => {
     pc.onicecandidate = onIceCandidate;
     pc.ontrack = onTrack;
     pc.oniceconnectionstatechange = e => onIceStateChange(pc, e);
+
+    // add video and audio tracks if specified
+    console.log('in createPeerConnection(): should we add video and audio tracks? ', video_audio_on);
+    if (video_audio_on) {
+      navigator.mediaDevices
+        .getUserMedia({audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
+                       video: {deviceId: videoSource ? {exact: videoSource} : undefined}})
+        .then(stream => {
+          console.log('in createPeerConnection(): before assigning stream to localStream');
+          localStream = stream;
+          localStreamElement.srcObject = stream;
+          localStreamElement.muted = true;
+
+          // QZ: getTrack and addTrack so remote client can see local streams
+          console.log('in createPeerConnection(): before getTrack');
+          const videoTracks = stream.getVideoTracks();
+          const audioTracks = stream.getAudioTracks();
+          
+          console.log('in createPeerConnection(): before addTrack');
+          videoSender = pc.addTrack(videoTracks[0], localStream);
+          audioSender = pc.addTrack(audioTracks[0], localStream);
+
+          console.log('in createPeerConnection(): before sendOffer()');
+          sendOffer();
+        })
+        .catch(error => {
+          console.error('in createPeerConnection(): we met an error: ', error);
+        });
+    }
 
     // Initialization: here we use dummy audio and video tracks before users turn on cameras/microphones
     // let constraints = {width: 640, height: 480};
@@ -480,7 +519,7 @@ function serverDisconnect() {
 function webrtcConnect() {
   // send a webrtc connect request to the server
   // this will put us and the other user in the same chat room
-  socket.emit("webrtc_connect_request", selectedUser);
+  socket.emit("webrtc_connect_request", {"other_user": selectedUser, "video_audio_on": 0});
   connectButton.disabled = true;
   disconnectButton.disabled = false;
 
@@ -799,6 +838,22 @@ async function stopPeak() {
   stopPeakButton.disabled = true;
 }
 
+async function webrtcConnectAndStartPeak() {
+  socket.emit("webrtc_connect_request", {"other_user": selectedUser, "video_audio_on": 1});
+  startPeakButton.disabled = true;
+  stopPeakButton.disabled = false;
+}
+
+async function webrtcDisconnectAndStopPeak() {
+  socket.emit("webrtc_disconnect_request", selectedUser);
+
+  // this would close and clean up the WebRTC peer connection on our side
+  webrtcClose();
+
+  startPeakButton.disabled = false;
+  stopPeakButton.disabled = true;
+}
+
 // async function callDisconnect() {
 //   // set button states
 //   videoOnButton.disabled = true;
@@ -836,6 +891,9 @@ async function stopPeak() {
 //   await sleep(500);
 //   socket.disconnect();
 // }
+
+function doNothing() { 
+}
 
 // Start connection
 console.log("main: starting everything");

@@ -90,7 +90,11 @@ async def new_user_connect_to_call(sid, user_info):
     await sio.emit('broadcast_connection_update', rooms_and_user_info[LOBBY], room=LOBBY)
 
 @sio.event
-async def webrtc_connect_request(sid, other_user_sid):
+async def webrtc_connect_request(sid, request_details):
+
+    other_user_sid = request_details["other_user"]
+    video_audio_on = request_details["video_audio_on"]
+
     assert if_user_in_room(LOBBY, other_user_sid)
     user_1 = sid_and_user_info[sid]["user_id"]
     user_2 = sid_and_user_info[other_user_sid]["user_id"]
@@ -106,7 +110,12 @@ async def webrtc_connect_request(sid, other_user_sid):
 
     # broadcast the other side for further actions
     # WARNING: this would trigger the call initiator to send a webrtc offer
-    await sio.emit('ready', room=private_chat_room_name, skip_sid=other_user_sid)
+    if video_audio_on == 0:
+        await sio.emit('ready', room=private_chat_room_name, skip_sid=other_user_sid)
+    elif video_audio_on == 1:
+        await sio.emit('peak_ready', room=private_chat_room_name, skip_sid=other_user_sid)
+    else:
+        logging.info(f"Unknown value of video_audio_on in webrtc_connect_request: {video_audio_on}")
 
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):
@@ -155,4 +164,4 @@ async def local_data(sid, data):
     await sio.emit('data', data, room=private_chat_room, skip_sid=sid)
 
 if __name__ == '__main__':
-    web.run_app(app, host="172.27.76.160", port=9999)
+    web.run_app(app, host="10.5.65.215", port=9999)
