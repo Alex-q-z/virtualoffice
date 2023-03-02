@@ -30,7 +30,28 @@ python server.py
 
 A websocket server will be hosted at the IP address and at the port number indicated in web.run_app(). Note that this server does not have to be hosted on any client's local computer.
 
-### Web chat window
+### User information
+
+To set up personal info that will be displayed during the chat, do
+
+```
+cd goto-lunch-web
+touch clientconfig.js
+```
+
+In `clientconfig.js`, put the following lines
+
+```
+const USER_ID = "your name";
+const DEVICE = "your device";
+const USER_INFO = {"user_id": USER_ID, "device": DEVICE};
+```
+
+Note that this information will be broadcast to other users when you get online.
+
+### Web chat client
+
+To start the web chat client, do
 
 ```
 cd goto-lunch-web
@@ -38,10 +59,6 @@ python -m http.server 6001
 ```
 
 A web chat window will be started and hosted at `localhost:6001`. Feel free to change the port number.
-
-### To-dos
-
-As the next steps, we plan to make this demo work for computers on different networks.
 
 ## Reference
 
