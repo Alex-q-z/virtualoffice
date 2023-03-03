@@ -319,7 +319,7 @@ let handleSignalingData = (data) => {
         // connectButton.disabled = true;
         // disconnectButton.disabled = false;
         startPeakButton.disabled = true;
-        disconnectButton.disabled = false;
+        stopPeakButton.disabled = false;
       }
       else {
         console.log("handleSignalingData offer: signalingState is %s", pc.signalingState);
