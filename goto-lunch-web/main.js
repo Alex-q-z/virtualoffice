@@ -318,7 +318,8 @@ let handleSignalingData = (data) => {
         // QZ: this might not be the best place
         // connectButton.disabled = true;
         // disconnectButton.disabled = false;
-        startPeakButton.disabled = false;
+        startPeakButton.disabled = true;
+        disconnectButton.disabled = false;
       }
       else {
         console.log("handleSignalingData offer: signalingState is %s", pc.signalingState);
@@ -413,12 +414,12 @@ function updateActiveUsers() {
       continue;
     }
     else {
-      // if (selectedUser == null && first_user_not_myself) {
-      //   selectedUser = sid;
-      //   startPeakButton.disabled = false;
-      //   // connectButton.disabled = false;
-      //   first_user_not_myself = false;
-      // }
+      if (selectedUser == null && first_user_not_myself) {
+        selectedUser = sid;
+        startPeakButton.disabled = false;
+        // connectButton.disabled = false;
+        first_user_not_myself = false;
+      }
       const optionElement = document.createElement('option');
       optionElement.value = sid;
       optionElement.text = active_users[sid]["user_id"] + " (" + active_users[sid]["device"] + ")";
