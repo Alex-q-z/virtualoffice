@@ -119,19 +119,19 @@ async def webrtc_connect_request(sid, request_details):
 
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):
-    private_chat_room_name = sid + "_" + other_user_sid
+    private_chat_room = sid_and_user_info[sid]["current_chat_room"]
     user_1 = sid_and_user_info[sid]["user_id"]
     user_2 = sid_and_user_info[other_user_sid]["user_id"]
     print(f"WebRTC disconnect request from {sid} to {other_user_sid}")
     logging.info(f"WebRTC disconnect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
     # broadcast the other side for further actions
-    await sio.emit('webrtc_disconnect', room=private_chat_room_name, skip_sid=sid)
+    await sio.emit('webrtc_disconnect', room=private_chat_room, skip_sid=sid)
     # remove the private chatroom, and update the server-side user info cache
-    remove_user_from_room(private_chat_room_name, sid)
-    remove_user_from_room(private_chat_room_name, other_user_sid)
-    sio.leave_room(sid, private_chat_room_name)
-    sio.leave_room(other_user_sid, private_chat_room_name)
-    close_room(private_chat_room_name)
+    # remove_user_from_room(private_chat_room_name, sid)
+    # remove_user_from_room(private_chat_room_name, other_user_sid)
+    # sio.leave_room(sid, private_chat_room_name)
+    # sio.leave_room(other_user_sid, private_chat_room_name)
+    # close_room(private_chat_room_name)
 
 @sio.event
 async def disconnect(sid):
