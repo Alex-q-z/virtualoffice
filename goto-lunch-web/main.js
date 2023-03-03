@@ -7,40 +7,40 @@ const PC_CONFIG = {};
 // button-associated HTML elements
 // const startButton = document.getElementById('startButton');
 const loginButton = document.getElementById('loginButton');
-const connectButton = document.getElementById('connectButton');
+// const connectButton = document.getElementById('connectButton');
 // const videoOnButton = document.getElementById('videoOnButton');
 // const videoOffButton = document.getElementById('videoOffButton');
 // const audioOnButton = document.getElementById('audioOnButton');
 // const audioOffButton = document.getElementById('audioOffButton');
 const startPeakButton = document.getElementById('startPeakButton');
 const stopPeakButton = document.getElementById('stopPeakButton');
-const disconnectButton = document.getElementById('disconnectButton');
+// const disconnectButton = document.getElementById('disconnectButton');
 const logoffButton = document.getElementById('logoffButton');
 
 // button status
 // startButton.disabled = false;
 loginButton.disabled = true;
-connectButton.disabled = true;
+// connectButton.disabled = true;
 // videoOnButton.disabled = true;
 // videoOffButton.disabled = true;
 // audioOnButton.disabled = true;
 // audioOffButton.disabled = true;
 startPeakButton.disabled = true;
 stopPeakButton.disabled = true;
-disconnectButton.disabled = true;
+// disconnectButton.disabled = true;
 logoffButton.disabled = true;
 
 // button onclick events
 // startButton.onclick = start;
 loginButton.onclick = serverConnect; // callConnect;
-connectButton.onclick = doNothing; // webrtcConnect; // serverConnect; // callConnect;
+// connectButton.onclick = doNothing; // webrtcConnect; // serverConnect; // callConnect;
 // videoOnButton.onclick = videoOn; // videoOnNew;
 // videoOffButton.onclick = videoOff; // videoOff;
 // audioOnButton.onclick = audioOn; // audioOnNew;
 // audioOffButton.onclick = audioOff; // audioOff;
 startPeakButton.onclick = webrtcConnectAndStartPeak; // startPeak; // startPeak;
 stopPeakButton.onclick = webrtcDisconnectAndStopPeak; // stopPeak; // stopPeak;
-disconnectButton.onclick = webrtcDisconnect; // serverDisconnect; // callDisconnect;
+// disconnectButton.onclick = webrtcDisconnect; // serverDisconnect; // callDisconnect;
 logoffButton.onclick = serverDisconnect;
 
 // device-selection-related parameters and events
@@ -72,9 +72,9 @@ socket.on('webrtc_disconnect', (data) => {
   console.log('socket on: webrtc_disconnect');
   webrtcClose();
   // set button states
-  connectButton.disabled = false;
-  disconnectButton.disabled = true;
-  startPeakButton.disabled = true;
+  // connectButton.disabled = false;
+  // disconnectButton.disabled = true;
+  startPeakButton.disabled = false;
   stopPeakButton.disabled = true;
 });
 
@@ -313,10 +313,11 @@ let handleSignalingData = (data) => {
       console.log('handleSignalingData: case offer');
       if (pc == null) {
         console.log("handleSignalingData offer: pc is undefined");
-        createPeerConnection();
+        // WARNING: fix this later! video_audio_on should be dependent on server-side signal
+        createPeerConnection(video_audio_on = true);
         // QZ: this might not be the best place
-        connectButton.disabled = true;
-        disconnectButton.disabled = false;
+        // connectButton.disabled = true;
+        // disconnectButton.disabled = false;
         startPeakButton.disabled = false;
       }
       else {
@@ -400,22 +401,24 @@ function gotDevices(deviceInfos) {
 }
 
 function updateActiveUsers() {
-  // Clear all existing options from the select element
-  activeUsersSelect.innerHTML = '';
+  if ((selectedUser != null) && !(selectedUser in active_users)) {
+    selectedUser = null;
+    activeUsersSelect.innerHTML = '';
+    startPeakButton.disabled = true;
+  }
 
-  // Add an option element for each user in the active_users dictionary
-  // WARNING: user ordering here might trigger a bug
-  let first_user_not_myself = true;
+  // let first_user_not_myself = true;
   for (let sid in active_users) {
     if (active_users[sid]["user_id"] == USER_ID) {
       continue;
     }
     else {
-      if (selectedUser == null && first_user_not_myself) {
-        selectedUser = sid;
-        connectButton.disabled = false;
-        first_user_not_myself = false;
-      }
+      // if (selectedUser == null && first_user_not_myself) {
+      //   selectedUser = sid;
+      //   startPeakButton.disabled = false;
+      //   // connectButton.disabled = false;
+      //   first_user_not_myself = false;
+      // }
       const optionElement = document.createElement('option');
       optionElement.value = sid;
       optionElement.text = active_users[sid]["user_id"] + " (" + active_users[sid]["device"] + ")";
@@ -439,6 +442,9 @@ function updateActiveUsers() {
 }
 
 function updateSelectedUser() {
+  if (selectedUser == null) {
+    startPeakButton.disabled = false;
+  }
   selectedUser = activeUsersSelect.value;
 }
 
@@ -504,13 +510,14 @@ function serverConnect() {
 }
 
 function serverDisconnect() {
-  console.log('in serverDisconnect(): before we disconnect the web socket connection with the signaling server');
+  console.log('in serverDisconnect(): before webrtcClose');
+  webrtcClose();
+  console.log('in serverDisconnect(): before socket.disconnect');
   socket.disconnect();
-  console.log('in serverDisconnect(): after we called socket.disconnect()');
   loginButton.disabled = false;
   logoffButton.disabled = true;
-  connectButton.disabled = true;
-  disconnectButton.disabled = true;
+  // connectButton.disabled = true;
+  // disconnectButton.disabled = true;
   startPeakButton.disabled = true;
   stopPeakButton.disabled = true;
   resetActiveUsers();
@@ -520,16 +527,18 @@ function webrtcConnect() {
   // send a webrtc connect request to the server
   // this will put us and the other user in the same chat room
   socket.emit("webrtc_connect_request", {"other_user": selectedUser, "video_audio_on": 0});
-  connectButton.disabled = true;
-  disconnectButton.disabled = false;
+  // connectButton.disabled = true;
+  // disconnectButton.disabled = false;
 
   // QZ: there might be race condition, ignore for now
   startPeakButton.disabled = false;
 }
 
 function webrtcClose() {
-  pc.close();
-  pc = null;
+  if (pc != null) {
+    pc.close();
+    pc = null;
+  }
 
   if (localStream != null) {
     const videoTracks = localStream.getVideoTracks();
@@ -548,6 +557,7 @@ function webrtcClose() {
   }
 
   localStreamElement.srcObject = null;
+  remoteStreamElement.srcObject = null;
 }
 
 function webrtcDisconnect() {
@@ -559,8 +569,8 @@ function webrtcDisconnect() {
   webrtcClose();
 
   // set button states
-  connectButton.disabled = false;
-  disconnectButton.disabled = true;
+  // connectButton.disabled = false;
+  // disconnectButton.disabled = true;
   startPeakButton.disabled = true;
   stopPeakButton.disabled = true;
 }
@@ -840,6 +850,7 @@ async function stopPeak() {
 
 async function webrtcConnectAndStartPeak() {
   socket.emit("webrtc_connect_request", {"other_user": selectedUser, "video_audio_on": 1});
+  
   startPeakButton.disabled = true;
   stopPeakButton.disabled = false;
 }
