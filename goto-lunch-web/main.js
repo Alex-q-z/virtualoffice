@@ -408,7 +408,7 @@ function updateActiveUsers() {
     startPeakButton.disabled = true;
   }
 
-  // let first_user_not_myself = true;
+  let first_user_not_myself = true;
   for (let sid in active_users) {
     if (active_users[sid]["user_id"] == USER_ID) {
       continue;
