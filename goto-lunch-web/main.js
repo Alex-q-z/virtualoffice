@@ -358,6 +358,12 @@ let handleSignalingData = (data) => {
       audioOff();
       break;
     case 'video_and_audio_on':
+      // before turning on video and audio, do two things:
+      // 1. release a sound effect that reminds the user
+      // playDoorKnock();
+      // 2. wait for 2-3 seconds before turning on video
+      // sleep(3000);
+      // turn on video and audio
       videoAndAudioOn();
       startPeakButton.disabled = true;
       stopPeakButton.disabled = false;
@@ -369,6 +375,27 @@ let handleSignalingData = (data) => {
       break;
   }
 };
+
+function playDoorKnock() {
+  // create audio context
+  const audioContext = new AudioContext();
+
+  // create audio buffer from door knock sound file
+  const audioFileUrl = "https://example.com/door-knock-sound.mp3";
+  const audioRequest = new XMLHttpRequest();
+  audioRequest.open("GET", audioFileUrl, true);
+  audioRequest.responseType = "arraybuffer";
+  audioRequest.onload = function() {
+    audioContext.decodeAudioData(audioRequest.response, function(audioBuffer) {
+      // create audio source from audio buffer
+      const audioSource = audioContext.createBufferSource();
+      audioSource.buffer = audioBuffer;
+      audioSource.connect(audioContext.destination);
+      audioSource.start();
+    });
+  };
+  audioRequest.send();
+}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -416,9 +443,11 @@ function get_user_status(user_info) {
 }
 
 function updateActiveUsers() {
+  // Clear all existing options from the select element
+  activeUsersSelect.innerHTML = '';
+
   if ((selectedUser != null) && !(selectedUser in active_users)) {
     selectedUser = null;
-    activeUsersSelect.innerHTML = '';
     startPeakButton.disabled = true;
   }
 
