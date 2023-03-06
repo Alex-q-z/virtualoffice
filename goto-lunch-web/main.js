@@ -1,4 +1,5 @@
 // IP and port number of the signaling server
+// const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
 const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 
 // for communication that is local
@@ -42,6 +43,9 @@ startPeakButton.onclick = webrtcConnectAndStartPeak; // startPeak; // startPeak;
 stopPeakButton.onclick = webrtcDisconnectAndStopPeak; // stopPeak; // stopPeak;
 // disconnectButton.onclick = webrtcDisconnect; // serverDisconnect; // callDisconnect;
 logoffButton.onclick = serverDisconnect;
+
+// do-not-disturb checkbox
+const noDisturbCheckbox = document.getElementById("noDisturbCheckbox");
 
 // device-selection-related parameters and events
 const videoSelect = document.querySelector('select#videoSource');
@@ -401,6 +405,16 @@ function gotDevices(deviceInfos) {
   });
 }
 
+function get_user_status(user_info) {
+  if (user_info["do_not_disturb"]) {
+    return "do not disturb";
+  }
+  else if (user_info["availability"] == "busy") {
+    return "on a call";
+  }
+  return "free";
+}
+
 function updateActiveUsers() {
   if ((selectedUser != null) && !(selectedUser in active_users)) {
     selectedUser = null;
@@ -422,7 +436,8 @@ function updateActiveUsers() {
       }
       const optionElement = document.createElement('option');
       optionElement.value = sid;
-      optionElement.text = active_users[sid]["user_id"] + " (" + active_users[sid]["device"] + ")";
+      let user_status = get_user_status(active_users[sid]);
+      optionElement.text = active_users[sid]["user_id"] + " (" + active_users[sid]["device"] + "): " + user_status;
       activeUsersSelect.appendChild(optionElement);
     }
   }
@@ -904,6 +919,15 @@ async function webrtcDisconnectAndStopPeak() {
 //   socket.disconnect();
 // }
 
+function updateDoNotDisturb() {
+  socket.emit("update_do_not_disturb", USER_INFO["do_not_disturb"]);
+}
+
+function noDisturbCheckboxChange() {
+  USER_INFO["do_not_disturb"] = noDisturbCheckbox.checked;
+  updateDoNotDisturb();
+}
+
 function doNothing() { 
 }
 
@@ -914,3 +938,4 @@ start();
 videoSelect.onchange = reset;
 audioInputSelect.onchange = reset;
 activeUsersSelect.onchange = updateSelectedUser;
+noDisturbCheckbox.onchange = noDisturbCheckboxChange;
