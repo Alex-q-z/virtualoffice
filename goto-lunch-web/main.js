@@ -56,6 +56,9 @@ let audioSource = null;
 
 const activeUsersSelect = document.querySelector('select#activeUsers');
 
+// state variables
+let user_online_flag = false;
+
 // signaling method
 let socket = io(SIGNALING_SERVER_URL, { autoConnect: false });
 
@@ -548,10 +551,10 @@ function serverConnect() {
   socket.connect();
   socket.emit("new_user_connect_to_server", USER_INFO);
   console.log('in serverConnect(): after we called socket.connect()');
+  
+  user_online_flag = true;
   loginButton.disabled = true;
   logoffButton.disabled = false;
-  // connectButton.disabled = true;
-  // disconnectButton.disabled = false;
 }
 
 function serverDisconnect() {
@@ -559,10 +562,9 @@ function serverDisconnect() {
   webrtcClose();
   console.log('in serverDisconnect(): before socket.disconnect');
   socket.disconnect();
+  user_online_flag = false;
   loginButton.disabled = false;
   logoffButton.disabled = true;
-  // connectButton.disabled = true;
-  // disconnectButton.disabled = true;
   startPeakButton.disabled = true;
   stopPeakButton.disabled = true;
   resetActiveUsers();
@@ -954,7 +956,9 @@ function updateDoNotDisturb() {
 
 function noDisturbCheckboxChange() {
   USER_INFO["do_not_disturb"] = noDisturbCheckbox.checked;
-  updateDoNotDisturb();
+  if (user_online_flag) {
+    updateDoNotDisturb();
+  }
 }
 
 function doNothing() { 
