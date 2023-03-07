@@ -169,7 +169,7 @@ let get_black_video_track = ({width = 640, height = 480} = {}) => {
 let blackSilence = (...args) => new MediaStream([black(...args), silence()]);
 
 // create peer connection
-function createPeerConnection(video_audio_on = false) {
+function createPeerConnection(video_audio_on = false, peaked_on = false) {
   console.log("================WARNING: connection reset================");
   console.log("createPeerConnection: enter createPeerConnection");
   try {
@@ -181,6 +181,15 @@ function createPeerConnection(video_audio_on = false) {
     // add video and audio tracks if specified
     console.log('in createPeerConnection(): should we add video and audio tracks? ', video_audio_on);
     if (video_audio_on) {
+
+      if (peaked_on) {
+        // before turning on video and audio, do two things:
+        // 1. release a sound effect that reminds the user
+        playDoorKnock();
+        // 2. wait for 2-3 seconds before turning on video
+        sleep(3000);
+      }
+
       navigator.mediaDevices
         .getUserMedia({audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
                        video: {deviceId: videoSource ? {exact: videoSource} : undefined}})
@@ -321,7 +330,7 @@ let handleSignalingData = (data) => {
       if (pc == null) {
         console.log("handleSignalingData offer: pc is undefined");
         // WARNING: fix this later! video_audio_on should be dependent on server-side signal
-        createPeerConnection(video_audio_on = true);
+        createPeerConnection(video_audio_on = true, peaked_on = true);
         // QZ: this might not be the best place
         // connectButton.disabled = true;
         // disconnectButton.disabled = false;
@@ -361,11 +370,6 @@ let handleSignalingData = (data) => {
       audioOff();
       break;
     case 'video_and_audio_on':
-      // before turning on video and audio, do two things:
-      // 1. release a sound effect that reminds the user
-      // playDoorKnock();
-      // 2. wait for 2-3 seconds before turning on video
-      // sleep(3000);
       // turn on video and audio
       videoAndAudioOn();
       startPeakButton.disabled = true;
@@ -384,7 +388,7 @@ function playDoorKnock() {
   const audioContext = new AudioContext();
 
   // create audio buffer from door knock sound file
-  const audioFileUrl = "https://example.com/door-knock-sound.mp3";
+  const audioFileUrl = "https://alex-q-z.github.io/files/door-knock.mp3";
   const audioRequest = new XMLHttpRequest();
   audioRequest.open("GET", audioFileUrl, true);
   audioRequest.responseType = "arraybuffer";
@@ -896,8 +900,14 @@ async function stopPeak() {
 }
 
 async function webrtcConnectAndStartPeak() {
+  if (active_users[selectedUser]["do_not_disturb"] || active_users[selectedUser]["availability"] == "busy") {
+    return ;
+  }
+
+  // send a connect request to the server, which will be redirected to the other user
   socket.emit("webrtc_connect_request", {"other_user": selectedUser, "video_audio_on": 1});
   
+  // set button states
   startPeakButton.disabled = true;
   stopPeakButton.disabled = false;
 }
