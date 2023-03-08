@@ -1,4 +1,4 @@
-body, html {
+/* body, html {
   height: 100%;
   margin: 0;
 }
@@ -8,20 +8,11 @@ button {
   width: 83px;
 }
 
-/* video {
-  --width: 45%;
-  width: var(--width);
-  height: calc(var(--width) * 0.75);
-  margin: 0 0 20px 0;
-  vertical-align: top;
-} */
-
 #remoteStream {
   --width: 100%;
   --height: 100%;
   width: var(--width);
   height: var(--height);
-  /* height: calc(var(--width) * 0.75); */
   margin: 0 0 20px 0;
   vertical-align: top;
 }
@@ -37,22 +28,57 @@ button {
 div.select {
   display: inline-block;
   margin: 0 0 1em 0;
-}
-
-/* #videoal {
-  margin-left: 80px;
 } */
 
-/* #videoal div.video {
-  display: inline-block;
-  zoom: 1;
-  *display: inline;
-  width: 400px;
-  height: 400px;
-  margin: 0 10px 10px 0;
+
+body, html {
+  height: 100%;
+  margin: 0;
 }
 
-#videoal div.video video {
+button {
+  margin: 0 20px 0 0;
+  width: 83px;
+}
+
+div.select {
+  display: inline-block;
+  margin: 0 0 1em 0;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr min-content;
+  height: 100%;
+}
+
+.video-wrapper {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr;
+  grid-gap: 20px;
+  align-items: center;
+}
+
+#remoteStream {
   width: 100%;
   height: 100%;
-} */
+  object-fit: cover;
+}
+
+#localStream {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  max-width: 50%;
+  max-height: 50%;
+}
+
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
