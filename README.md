@@ -46,7 +46,7 @@ In `clientconfig.js`, put the following lines
 ```
 const USER_ID = "your name";
 const DEVICE = "your device";
-const USER_INFO = {"user_id": USER_ID, "device": DEVICE};
+let USER_INFO = {"user_id": USER_ID, "device": DEVICE};
 ```
 
 Note that this information will be broadcast to other users when you get online.

@@ -129,7 +129,6 @@ async def update_do_not_disturb(sid, doNotDisturb):
 
 @sio.event
 async def webrtc_connect_request(sid, request_details):
-
     other_user_sid = request_details["other_user"]
     video_audio_on = request_details["video_audio_on"]
 
@@ -168,6 +167,10 @@ async def webrtc_connect_request(sid, request_details):
     else:
         logging.info(f"Unknown value of video_audio_on in webrtc_connect_request: {video_audio_on}")
 
+    # generate the broadcast content (user info that all clients should have access to)
+    broadcast_content = generate_broadcast_content()
+    await sio.emit('broadcast_connection_update', broadcast_content, room=LOBBY)
+
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):
     private_chat_room = sid_and_user_info[sid]["current_chat_room"]
@@ -175,14 +178,20 @@ async def webrtc_disconnect_request(sid, other_user_sid):
     user_2 = sid_and_user_info[other_user_sid]["user_id"]
     print(f"WebRTC disconnect request from {sid} to {other_user_sid}")
     logging.info(f"WebRTC disconnect request from <{user_1}/{sid}> to <{user_2}/{other_user_sid}>")
+    
     # broadcast the other side for further actions
     await sio.emit('webrtc_disconnect', room=private_chat_room, skip_sid=sid)
+    
     # remove the private chatroom, and update the server-side user info cache
-    # remove_user_from_room(private_chat_room_name, sid)
-    # remove_user_from_room(private_chat_room_name, other_user_sid)
-    # sio.leave_room(sid, private_chat_room_name)
-    # sio.leave_room(other_user_sid, private_chat_room_name)
-    # close_room(private_chat_room_name)
+    remove_user_from_room(private_chat_room, sid)
+    remove_user_from_room(private_chat_room, other_user_sid)
+    sio.leave_room(sid, private_chat_room)
+    sio.leave_room(other_user_sid, private_chat_room)
+    close_room(private_chat_room)
+    
+    # generate the broadcast content (user info that all clients should have access to)
+    broadcast_content = generate_broadcast_content()
+    await sio.emit('broadcast_connection_update', broadcast_content, room=LOBBY)
 
 @sio.event
 async def disconnect(sid):
