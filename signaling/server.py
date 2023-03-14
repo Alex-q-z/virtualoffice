@@ -11,15 +11,6 @@ LOBBY = 'lobby'
 rooms_and_user_info = defaultdict(list)
 # an example
 # rooms_and_user_info = {
-#     "lobby": {SIDQZ: {"user_id": "Qizheng Zhang", "device": "laptop", "availability": "busy"},
-#               SIDJH: {"user_id": "James Hong", "device": "laptop", "availability": "busy"},
-#               SIDKF: {"user_id": "Kayvon Fatahalian", "device": "door", "availability": "free"}},
-#     "gates_3b_381": {SIDQZ: {"user_id": "Qizheng Zhang", "device": "laptop", "availability": "busy"},
-#                      SIDJH: {"user_id": "James Hong", "device": "laptop", "availability": "busy"}},
-# }
-
-# after refactoring
-# rooms_and_user_info = {
 #     "lobby": [SIDQZ, SIDJH, SIDKF],
 #     "gates_3b_381": [SIDQZ, SIDJH]
 # }
@@ -30,8 +21,16 @@ sid_and_user_info = defaultdict(dict)
 #     SIDQZ: {"user_id": "Qizheng Zhang", "device": "laptop", "availability": "busy", "current_chat_room": "gates_3b_381"}
 # }
 
+routes = web.RouteTableDef()
+@routes.get('/')
+async def index_handler(request):
+    return web.Response(
+        text='<h1>Hello!</h1>',
+        content_type='text/html')
+
 sio = socketio.AsyncServer(cors_allowed_origins='*', ping_timeout=35)
 app = web.Application()
+app.add_routes(routes)
 sio.attach(app)
 
 # def add_user_to_room(room, sid, user_info):
@@ -170,6 +169,14 @@ async def webrtc_connect_request(sid, request_details):
     # generate the broadcast content (user info that all clients should have access to)
     broadcast_content = generate_broadcast_content()
     await sio.emit('broadcast_connection_update', broadcast_content, room=LOBBY)
+
+@sio.event
+async def webrtc_transfer_request(sid, request_details):
+    door_sid = request_details["my_door_sid"]
+    other_side_sid = request_details["other_side_sid"]
+
+    webrtc_disconnect_request(door_sid, other_side_sid)
+    webrtc_connect_request(sid, other_side_sid)
 
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):

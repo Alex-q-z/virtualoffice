@@ -1,6 +1,6 @@
 // IP and port number of the signaling server
-// const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
-const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
+const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
+// const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 
 // for communication that is local
 const PC_CONFIG = {};
@@ -17,6 +17,7 @@ const startPeakButton = document.getElementById('startPeakButton');
 const stopPeakButton = document.getElementById('stopPeakButton');
 // const disconnectButton = document.getElementById('disconnectButton');
 const logoffButton = document.getElementById('logoffButton');
+const transferButton = document.getElementById('transferButton');
 
 // button status
 // startButton.disabled = false;
@@ -30,6 +31,7 @@ startPeakButton.disabled = true;
 stopPeakButton.disabled = true;
 // disconnectButton.disabled = true;
 logoffButton.disabled = true;
+transferButton.disabled = true;
 
 // button onclick events
 // startButton.onclick = start;
@@ -43,6 +45,7 @@ startPeakButton.onclick = webrtcConnectAndStartPeak; // startPeak; // startPeak;
 stopPeakButton.onclick = webrtcDisconnectAndStopPeak; // stopPeak; // stopPeak;
 // disconnectButton.onclick = webrtcDisconnect; // serverDisconnect; // callDisconnect;
 logoffButton.onclick = serverDisconnect;
+transferButton.onclick = transferVideoAndAudio;
 
 // do-not-disturb checkbox
 const noDisturbCheckbox = document.getElementById("noDisturbCheckbox");
@@ -55,6 +58,9 @@ let videoSource = null;
 let audioSource = null;
 
 const activeUsersSelect = document.querySelector('select#activeUsers');
+
+// stream-transfer-related parameters and events
+let my_door_sid = null;
 
 // state variables
 let user_online_flag = false;
@@ -450,7 +456,7 @@ function get_user_status(user_info) {
 }
 
 function updateActiveUsers() {
-  // Clear all existing options from the select element
+  // clear all existing options from the select element
   activeUsersSelect.innerHTML = '';
 
   if ((selectedUser != null) && !(selectedUser in active_users)) {
@@ -458,9 +464,21 @@ function updateActiveUsers() {
     startPeakButton.disabled = true;
   }
 
+  // update the list of active users
   let first_user_not_myself = true;
+  let is_my_door_online = false;
   for (let sid in active_users) {
+    // DO NOT display these two kinds of clients
+    // 1. any other devices belonging to myself
+    // 2. any other devices that are labeled "desk"
     if (active_users[sid]["user_id"] == USER_ID) {
+      if (active_users[sid]["device"].toLowerCase() == "door") {
+        is_my_door_online = true;
+        my_door_sid = sid;
+      }
+      continue;
+    }
+    else if (active_users[sid]["device"].toLowerCase() == "desk") {
       continue;
     }
     else {
@@ -478,19 +496,12 @@ function updateActiveUsers() {
     }
   }
 
-  // active_users.filter(user => user.user_id != USER_ID).forEach(function(user) {
-  //   const optionElement = document.createElement('option');
-  //   optionElement.value = user.sid;
-  //   optionElement.text = user.user_id + " (" + user.device + ")";
-  //   activeUsersSelect.appendChild(optionElement);
-  // });
-
-  // if (selectedUser == null && 
-  //     active_users.filter(user => user.user_id != USER_ID) != null && 
-  //     active_users.filter(user => user.user_id != USER_ID).length > 0) {
-  //   selectedUser = active_users.filter(user => user.user_id != USER_ID)[0].sid;
-  //   connectButton.disabled = false;
-  // }
+  // update transfer-stream related buttons and states
+  if (is_my_door_online && 
+      DEVICE.toLowerCase() == "desk" &&
+      active_users[my_door_sid]["availability"] == "busy") {
+    transferButton.disabled = false;
+  }
 }
 
 function updateSelectedUser() {
@@ -504,6 +515,15 @@ function resetActiveUsers() {
   // Clear all existing options from the select element
   activeUsersSelect.innerHTML = '';
   selectedUser = null;
+}
+
+function webrtc_fetch_other_side(user_sid) {
+  current_chat_room = active_users[user_sid]["current_chat_room"];
+  for (let sid in active_users) {
+    if (active_users[sid]["current_chat_room"] == current_chat_room) {
+      return sid;
+    }
+  }
 }
 
 function gotStream(stream) {
@@ -920,6 +940,13 @@ async function webrtcDisconnectAndStopPeak() {
 
   startPeakButton.disabled = false;
   stopPeakButton.disabled = true;
+}
+
+function transferVideoAndAudio() {
+  assert(my_door_sid, "Assertion failed: no local door sid detected");
+  let otherSideSid = webrtc_fetch_other_side(my_door_sid);
+  socket.emit("webrtc_transfer_request", {"desk_sid": my_door_sid, "other_side_sid": otherSideSid});
+  // transferButton.disabled = true;
 }
 
 // async function callDisconnect() {
