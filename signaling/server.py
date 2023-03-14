@@ -172,11 +172,12 @@ async def webrtc_connect_request(sid, request_details):
 
 @sio.event
 async def webrtc_transfer_request(sid, request_details):
+    print(f"WebRTC transfer request from <{sid}>")
     door_sid = request_details["my_door_sid"]
     other_side_sid = request_details["other_side_sid"]
 
-    webrtc_disconnect_request(door_sid, other_side_sid)
-    webrtc_connect_request(sid, other_side_sid)
+    await sio.emit('server_let_quit_chat', room=door_sid)
+    await sio.emit('server_let_connect_to_chat', other_side_sid, room=sid)
 
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):

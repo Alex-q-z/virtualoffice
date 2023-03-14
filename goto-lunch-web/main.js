@@ -1,6 +1,6 @@
 // IP and port number of the signaling server
-const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
-// const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
+// const SIGNALING_SERVER_URL = 'http://172.27.76.160:9999';
+const SIGNALING_SERVER_URL = 'http://10.5.65.215:9999';
 
 // for communication that is local
 const PC_CONFIG = {};
@@ -89,6 +89,15 @@ socket.on('webrtc_disconnect', (data) => {
   // disconnectButton.disabled = true;
   startPeakButton.disabled = false;
   stopPeakButton.disabled = true;
+});
+
+socket.on('server_let_quit_chat', (data) => {
+  webrtcDisconnectAndStopPeak();
+});
+
+socket.on('server_let_connect_to_chat', (other_side_sid) => {
+  selectedUser = other_side_sid;
+  webrtcConnectAndStartPeak();
 });
 
 socket.on('ready', () => {
@@ -943,9 +952,14 @@ async function webrtcDisconnectAndStopPeak() {
 }
 
 function transferVideoAndAudio() {
-  assert(my_door_sid, "Assertion failed: no local door sid detected");
+  console.log('in transferVideoAndAudio(): enter transferVideoAndAudio');
+  if (my_door_sid == null) {
+    console.log('in transferVideoAndAudio(): my_door_sid is null');
+  }
   let otherSideSid = webrtc_fetch_other_side(my_door_sid);
+  console.log('in transferVideoAndAudio(): otherSideSid', otherSideSid);
   socket.emit("webrtc_transfer_request", {"desk_sid": my_door_sid, "other_side_sid": otherSideSid});
+  console.log('in transferVideoAndAudio(): after webrtc_transfer_request');
   // transferButton.disabled = true;
 }
 
