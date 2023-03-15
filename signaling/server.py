@@ -91,7 +91,7 @@ async def new_user_connect_to_server(sid, user_info):
     print('New user info', user_info)
     logging.info(f"User connects to the server: {user_info}")
     sid_and_user_info[sid] = user_info
-    # await sio.emit('ready', room=LOBBY, skip_sid=sid)
+    sio.enter_room(sid, sid)
     # enter the main lobby
     sio.enter_room(sid, LOBBY)
     # 1. update rooms_and_user_info (stored at server side)
@@ -169,15 +169,6 @@ async def webrtc_connect_request(sid, request_details):
     # generate the broadcast content (user info that all clients should have access to)
     broadcast_content = generate_broadcast_content()
     await sio.emit('broadcast_connection_update', broadcast_content, room=LOBBY)
-
-@sio.event
-async def webrtc_transfer_request(sid, request_details):
-    print(f"WebRTC transfer request from <{sid}>")
-    door_sid = request_details["my_door_sid"]
-    other_side_sid = request_details["other_side_sid"]
-
-    await sio.emit('server_let_quit_chat', room=door_sid)
-    await sio.emit('server_let_connect_to_chat', other_side_sid, room=sid)
 
 @sio.event
 async def webrtc_disconnect_request(sid, other_user_sid):

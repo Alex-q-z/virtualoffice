@@ -91,15 +91,6 @@ socket.on('webrtc_disconnect', (data) => {
   stopPeakButton.disabled = true;
 });
 
-socket.on('server_let_quit_chat', (data) => {
-  webrtcDisconnectAndStopPeak();
-});
-
-socket.on('server_let_connect_to_chat', (other_side_sid) => {
-  selectedUser = other_side_sid;
-  webrtcConnectAndStartPeak();
-});
-
 socket.on('ready', () => {
   console.log('socket on: Ready');
   // Connection with signaling server is ready, and so is local stream
@@ -953,13 +944,13 @@ async function webrtcDisconnectAndStopPeak() {
 
 function transferVideoAndAudio() {
   console.log('in transferVideoAndAudio(): enter transferVideoAndAudio');
-  if (my_door_sid == null) {
-    console.log('in transferVideoAndAudio(): my_door_sid is null');
-  }
-  let otherSideSid = webrtc_fetch_other_side(my_door_sid);
-  console.log('in transferVideoAndAudio(): otherSideSid', otherSideSid);
-  socket.emit("webrtc_transfer_request", {"desk_sid": my_door_sid, "other_side_sid": otherSideSid});
-  console.log('in transferVideoAndAudio(): after webrtc_transfer_request');
+  // if (my_door_sid == null) {
+  //   console.log('in transferVideoAndAudio(): my_door_sid is null');
+  // }
+  // let otherSideSid = webrtc_fetch_other_side(my_door_sid);
+  // console.log('in transferVideoAndAudio(): otherSideSid', otherSideSid);
+  // socket.emit("webrtc_transfer_request", {"my_door_sid": my_door_sid, "other_side_sid": otherSideSid});
+  // console.log('in transferVideoAndAudio(): after webrtc_transfer_request');
   // transferButton.disabled = true;
 }
 
