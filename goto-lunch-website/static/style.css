@@ -1,0 +1,84 @@
+/* body, html {
+  height: 100%;
+  margin: 0;
+}
+
+button {
+  margin: 0 20px 0 0;
+  width: 83px;
+}
+
+#remoteStream {
+  --width: 100%;
+  --height: 100%;
+  width: var(--width);
+  height: var(--height);
+  margin: 0 0 20px 0;
+  vertical-align: top;
+}
+
+#localStream {
+  --width: 25%;
+  width: var(--width);
+  height: calc(var(--width) * 0.75);
+  margin: 0 0 20px 0;
+  vertical-align: top;
+}
+
+div.select {
+  display: inline-block;
+  margin: 0 0 1em 0;
+} */
+
+
+body, html {
+  height: 100%;
+  margin: 0;
+}
+
+button {
+  margin: 0 20px 0 0;
+  width: 83px;
+}
+
+div.select {
+  display: inline-block;
+  margin: 0 0 1em 0;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr min-content;
+  height: 100%;
+}
+
+.video-wrapper {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr;
+  grid-gap: 20px;
+  align-items: center;
+}
+
+#remoteStream {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#localStream {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  max-width: 50%;
+  max-height: 50%;
+}
+
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}

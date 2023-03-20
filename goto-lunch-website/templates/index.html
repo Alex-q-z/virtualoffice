@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC working example</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div id="container">
+
+    <!-- <video id="remoteStream" autoplay playsinline></video>
+    <video id="localStream" autoplay playsinline></video> -->
+
+    <div class="video-wrapper">
+        <video id="remoteStream" autoplay playsinline></video>
+        <video id="localStream" autoplay playsinline></video>
+    </div>
+
+    <!-- <div> -->
+    <div class="button-wrapper">
+        <!-- <button id="startButton">Start</button> -->
+        <button id="loginButton">Log in</button>
+        <!-- <button id="connectButton">Connect</button> -->
+        <!-- <button id="videoOnButton">Video on</button>
+        <button id="audioOnButton">Audio on</button>
+        <button id="videoOffButton">Video off</button>
+        <button id="audioOffButton">Audio off</button> -->
+        
+        <!-- peak-in related buttons -->
+        <button id="startPeakButton">Start peak</button>
+        <!-- <button id="StopPeakButton">Stop my peak</button> -->
+        <button id="stopPeakButton">Stop peak</button>
+
+        <!-- <button id="disconnectButton">Disconnect</button> -->
+        <button id="logoffButton">Log off</button>
+
+        <button id="transferButton">Transfer to desk</button>
+        <!-- <button id="logoffButton">Log off</button> -->
+
+        <div class="select">
+            <label for="videoSource">Video source: </label><select id="videoSource"></select>
+        </div>
+
+        <div class="select">
+            <label for="audioSource">Audio source: </label><select id="audioSource"></select>
+        </div>
+
+        <div class="select">
+            <label for="activeUsers">Active users: </label><select id="activeUsers"></select>
+        </div>
+
+        <input type="checkbox" id="noDisturbCheckbox">
+        <label for="noDisturbCheckbox">Do not disturb</label>
+    </div>
+
+</div>
+
+<script>
+    // Define global variables for username and device_type
+    var global_username = "{{ username }}";
+    var global_device_type = "{{ device_type }}";
+    var global_user_info = {"user_id": global_username, "device": global_device_type};
+</script>
+
+<script src="{{ url_for('static', filename='socket.io.js') }}"></script>
+<script src="https://www.webrtc-experiment.com/DetectRTC.js"> </script>
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+
+</body>
+</html>
