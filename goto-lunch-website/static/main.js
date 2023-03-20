@@ -18,7 +18,7 @@ const startPeakButton = document.getElementById('startPeakButton');
 const stopPeakButton = document.getElementById('stopPeakButton');
 // const disconnectButton = document.getElementById('disconnectButton');
 const logoffButton = document.getElementById('logoffButton');
-const transferButton = document.getElementById('transferButton');
+// const transferButton = document.getElementById('transferButton');
 
 // button status
 // startButton.disabled = false;
@@ -32,7 +32,7 @@ startPeakButton.disabled = true;
 stopPeakButton.disabled = true;
 // disconnectButton.disabled = true;
 logoffButton.disabled = true;
-transferButton.disabled = true;
+// transferButton.disabled = true;
 
 // button onclick events
 // startButton.onclick = start;
@@ -46,7 +46,7 @@ startPeakButton.onclick = webrtcConnectAndStartPeak; // startPeak; // startPeak;
 stopPeakButton.onclick = webrtcDisconnectAndStopPeak; // stopPeak; // stopPeak;
 // disconnectButton.onclick = webrtcDisconnect; // serverDisconnect; // callDisconnect;
 logoffButton.onclick = serverDisconnect;
-transferButton.onclick = transferVideoAndAudio;
+// transferButton.onclick = transferVideoAndAudio;
 
 // do-not-disturb checkbox
 const noDisturbCheckbox = document.getElementById("noDisturbCheckbox");
@@ -498,11 +498,11 @@ function updateActiveUsers() {
   }
 
   // update transfer-stream related buttons and states
-  if (is_my_door_online && 
-      global_device_type.toLowerCase() == "desk" &&
-      active_users[my_door_sid]["availability"] == "busy") {
-    transferButton.disabled = false;
-  }
+  // if (is_my_door_online && 
+  //     global_device_type.toLowerCase() == "desk" &&
+  //     active_users[my_door_sid]["availability"] == "busy") {
+  //   transferButton.disabled = false;
+  // }
 }
 
 function updateSelectedUser() {
